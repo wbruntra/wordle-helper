@@ -24,9 +24,14 @@ ul {
 }
 
 .guess {
-  cursor: pointer;
   font-size: 1.8em;
   margin-top: 8px;
+}
+
+.delete {
+  margin-left: 36px;
+  /* padding-bottom: 8px; */
+  cursor: pointer;
 }
 
 .box {
@@ -50,4 +55,8 @@ ul {
 
 .ml-3 {
   margin-left: 12px;
+}
+
+.mb-0 {
+  margin-bottom: 0;
 }

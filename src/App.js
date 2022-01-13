@@ -3,22 +3,28 @@ import { useState, useRef } from 'react'
 import starterList from './starterList.json'
 import { getEval, filterWords } from './utils'
 
-const getRandomSlice = (arr) => {
-  const start = Math.floor(Math.random() * (arr.length - 20))
-  return arr.slice(start, start + 20)
+const config = {
+  maxListLength: 20,
+}
+
+const getRandomSlice = (arr, size) => {
+  const start = Math.floor(Math.random() * (arr.length - size))
+  return arr.slice(start, start + size)
 }
 
 function App() {
+  const [touched, setTouched] = useState(false)
   const [guesses, setGuesses] = useState([])
   const [word, setWord] = useState('')
   const [key, setKey] = useState('')
   const [filtered, setFiltered] = useState(starterList.slice())
-  const [mySlice, setMySlice] = useState(getRandomSlice(filtered))
+  const [mySlice, setMySlice] = useState(getRandomSlice(filtered, config.maxListLength))
   const inputEl = useRef(null)
 
   const resetGuesses = () => {
     setGuesses([])
     setFiltered(starterList)
+    setTouched(false)
   }
 
   const removeIdx = (arr, idx) => {
@@ -50,10 +56,14 @@ function App() {
     setGuesses(newGuesses)
     setWord('')
     setKey('')
+    setTouched(true)
 
     let localFiltered = applyGuesses(starterList, newGuesses)
     setFiltered(localFiltered)
-    const newSlice = localFiltered.length > 20 ? getRandomSlice(localFiltered) : localFiltered
+    const newSlice =
+      localFiltered.length > config.maxListLength
+        ? getRandomSlice(localFiltered, config.maxListLength)
+        : localFiltered
     setMySlice(newSlice)
     inputEl.current.focus()
   }
@@ -70,18 +80,25 @@ function App() {
   const applyFilters = () => {
     let localFiltered = applyGuesses(starterList, guesses)
     setFiltered(localFiltered)
-    const newSlice = localFiltered.length > 10 ? getRandomSlice(localFiltered) : localFiltered
+    const newSlice =
+      localFiltered.length > config.maxListLength
+        ? getRandomSlice(localFiltered, config.maxListLength)
+        : localFiltered
     setMySlice(newSlice)
   }
 
   return (
     <div className="container">
       <h1>Wordle Helper</h1>
-      <p>Enter your guesses along with the color-coded result you got from Wordle</p>
-      <p>Y for yellow, G for green, any other character for a miss</p>
-      <p>Example: ADDLE {`=> `} G...Y</p>
+      {!touched && (
+        <>
+          <p>Enter your guesses along with the color-coded result you got from Wordle</p>
+          <p>Y for yellow, G for green, any other character for a miss</p>
+          <p>Example: ADDLE {`=> `} G...Y</p>
+        </>
+      )}
       <form onSubmit={addGuess}>
-        <fieldset>
+        <fieldset className='mb-0'>
           <input
             ref={inputEl}
             value={word}
@@ -89,7 +106,7 @@ function App() {
             placeholder="word"
           />
         </fieldset>
-        <fieldset>
+        <fieldset className='mb-0'>
           <input
             value={key}
             onChange={(e) => setKey(e.target.value.toUpperCase())}
@@ -101,14 +118,16 @@ function App() {
       <ul>
         {guesses.map((guess, i) => {
           return (
-            <li
-              onClick={() => {
-                setGuesses(removeIdx(guesses, i))
-              }}
-              className="guess"
-              key={`guess-${i}`}
-            >
+            <li className="guess" key={`guess-${i}`}>
               {guess.word} {'=>'} {renderBoxes(guess.key)}
+              <span
+                className="delete"
+                onClick={() => {
+                  setGuesses(removeIdx(guesses, i))
+                }}
+              >
+                x
+              </span>
             </li>
           )
         })}
