@@ -19,11 +19,6 @@ export const containFilter = (words, letters, reverse = false) => {
 }
 
 export const locationFilter = (words, correctLetters) => {
-  // correctLetter = {
-  //   position: 2,
-  //   name: 'B'
-  // }
-
   let filtered = words.slice()
   for (let letter of correctLetters) {
     filtered = filtered.filter((word) => {
@@ -164,6 +159,77 @@ export const filterWords = (guess, evaluation, words) => {
   return filtered
 }
 
+export const getEliminatedCount = (guess, answer, words) => {
+  const originalLength = words.length
+
+  const e = evaluate(guess, answer)
+  const filtered = filterWords(guess, e, words)
+
+  const eliminatedCount = originalLength - filtered.length
+
+  return eliminatedCount
+}
+
+export const newGetEliminatedCount = (guess, answer, words) => {
+  const originalLength = words.length
+
+  const e = newEval(answer, guess)
+  const filtered = newFilter({ key: e, word: guess }, words)
+
+  const eliminatedCount = originalLength - filtered.length
+
+  return eliminatedCount
+}
+
+export const newEval = (answer, candidate) => {
+  let wordCopy = answer.slice()
+  let result = ''
+  for (let i = 0; i < candidate.length; i++) {
+    if (wordCopy[i] === candidate[i]) {
+      result = result + 'G'
+      wordCopy = wordCopy.slice(0, i) + '-' + wordCopy.slice(i + 1)
+    } else {
+      if (wordCopy.includes(candidate[i])) {
+        result = result + 'Y'
+        wordCopy = wordCopy.replace(candidate[i], '-')
+      } else {
+        result = result + '-'
+      }
+    }
+  }
+  return result
+}
+
+export const isWordValid = (word, guess) => {
+  let wordCopy = word.slice()
+  for (let i = 0; i < guess.word.length; i++) {
+    if (guess.key[i] === 'G') {
+      if (wordCopy[i] !== guess.word[i]) {
+        return false
+      } else {
+        wordCopy = wordCopy.slice(0, i) + '-' + wordCopy.slice(i + 1)
+      }
+    } else if (guess.key[i] === 'Y') {
+      if (!wordCopy.includes(guess.word[i])) {
+        return false
+      } else {
+        wordCopy = wordCopy.replace(guess.word[i], '-')
+      }
+    } else {
+      if (wordCopy.includes(guess.word[i])) {
+        return false
+      }
+    }
+  }
+  return true
+}
+
+export const newFilter = (guess, wordList) => {
+  return wordList.filter((word) => {
+    return isWordValid(word, guess)
+  })
+}
+
 const removeCorrect = (evaluation, word) => {
   let result = ''
   const correct = getCorrect(evaluation)
@@ -252,14 +318,15 @@ const run = () => {
   ]
   for (let guess of guesses) {
     // e = evaluate(guess, answer)
-    e = getEval(guess)
-    console.log(e)
-    filtered = filterWords(guess.word, e, filtered)
+    const answer = 'CARED'
+    e = newEval(answer, guess.word)
+    console.log(guess.word, e)
+    // filtered = filterWords(guess.word, e, filtered)
   }
 
   // let filtered = filterWords(guess, e, starterList)
 
-  console.log(filtered.slice(0, 5))
+  // console.log(filtered.slice(0, 5))
   // console.log(correct, present, absent)
 }
 // if (module.)
