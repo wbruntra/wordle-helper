@@ -31,6 +31,32 @@ function App() {
     return [...arr.slice(0, idx), ...arr.slice(idx + 1)]
   }
 
+  // const renderGuesses = (guesses) => {
+  //   const result = guesses.map((guess) => {})
+  //   return guess.key.split('').map((c, i) => {
+  //     if (c === 'G') {
+  //       return <div className="box green">{guess.word[i]}</div>
+  //     }
+  //     if (c === 'Y') {
+  //       return <div className="box yellow">{guess.word[i]}</div>
+  //     }
+  //     return <div className="box white">{guess.word[i]}</div>
+  //   })
+  //   return result
+  // }
+
+  const renderGuess = (guess) => {
+    return guess.key.split('').map((c, i) => {
+      if (c === 'G') {
+        return <div className="box green">{guess.word[i]}</div>
+      }
+      if (c === 'Y') {
+        return <div className="box yellow">{guess.word[i]}</div>
+      }
+      return <div className="box white">{guess.word[i]}</div>
+    })
+  }
+
   const renderBoxes = (s) => {
     const result = s.split('').map((c) => {
       if (c === 'G') {
@@ -98,7 +124,7 @@ function App() {
         </>
       )}
       <form onSubmit={addGuess}>
-        <fieldset className='mb-0'>
+        <fieldset className="mb-0">
           <input
             ref={inputEl}
             value={word}
@@ -106,7 +132,7 @@ function App() {
             placeholder="word"
           />
         </fieldset>
-        <fieldset className='mb-0'>
+        <fieldset className="mb-0">
           <input
             value={key}
             onChange={(e) => setKey(e.target.value.toUpperCase())}
@@ -119,7 +145,8 @@ function App() {
         {guesses.map((guess, i) => {
           return (
             <li className="guess" key={`guess-${i}`}>
-              {guess.word} {'=>'} {renderBoxes(guess.key)}
+              {renderGuess(guess)}
+              {/* {guess.word} {'=>'} {renderBoxes(guess.key)} */}
               <span
                 className="delete"
                 onClick={() => {

@@ -35,22 +35,24 @@ ul {
 }
 
 .box {
-  height: 24px;
-  width: 16px;
+  /* height: 24px;
+  width: 16px; */
+  padding: 2px 12px;
   display: inline-block;
-  margin-left: 6px;
+  margin-left: 8px;
+  /* color: black; */
 }
 
 .green {
-  background-color: green;
+  background-color: #6faf62;
 }
 
 .yellow {
-  background-color: rgba(255, 255, 0, 0.89);
+  background-color: #ddaa28;
 }
 
 .white {
-  background-color: rgb(231, 231, 231);
+  background-color: #6a708e;
 }
 
 .ml-3 {
