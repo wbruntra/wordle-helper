@@ -120,7 +120,7 @@ function App() {
         <>
           <p>Enter your guesses along with the color-coded result you got from Wordle</p>
           <p>Y for yellow, G for green, any other character for a miss</p>
-          <p>Example: ADDLE {`=> `} G...Y</p>
+          <p>Example: ADDLE {`=> `} G***Y</p>
           <ul>
             <li className="guess">{renderGuess({ word: 'ADDLE', key: 'G...Y' })}</li>
           </ul>
