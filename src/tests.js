@@ -179,10 +179,10 @@ const newGetAverageEliminated = (guess, answers) => {
 }
 
 const judgeGuesses = (useNew = true) => {
-  // const result = {
-  //   ...testResults,
-  // }
-  const result = {}
+  const result = {
+    ...testResults,
+  }
+  // const result = {}
   const guessSampleSize = 10
   const answerSampleSize = 250
 
@@ -217,7 +217,7 @@ const judgeGuesses = (useNew = true) => {
   // const ranks = _.sortBy(result, (v, k) => v)
   // console.log(result)
 
-  // fs.writeFileSync('./test-results.json', JSON.stringify(result, null, 2))
+  fs.writeFileSync('./test-results.json', JSON.stringify(result, null, 2))
 
   console.log(ranks.slice(0, 20))
 }
