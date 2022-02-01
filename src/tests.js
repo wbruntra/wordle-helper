@@ -1,18 +1,63 @@
+import _, { every } from 'lodash'
 import {
-  getEval,
+  analysisFilter,
+  createEvaluator,
+  evaluateToString,
   filterWords,
-  evaluate,
-  stringEval,
+  filterWordsWithAnswer,
+  getAnswersMatchingKey,
   getEliminatedCount,
-  newEval,
-  newFilter,
-  isWordValid,
-  newGetEliminatedCount,
+  getEliminatedCountWithAnswer
 } from './utils'
-import starterList from './starterList.json'
-import _ from 'lodash'
+
 import fs from 'fs'
-import testResults from './test-results.json'
+// import starterList from './starterList.json'
+import starterList from '../results/words-common-15.json'
+
+// import resultList from './result-list.json'
+// import oldTestResults from './test-results.json'
+
+const sleep = (ms) => {
+  const time = ms / 1000
+  return new Promise((resolve) => setTimeout(resolve, time))
+}
+
+export const numToKey = (n) => {
+  const s = ('00000' + n.toString(3)).slice(-5)
+  return s.split('').map((i) => {
+    switch (i) {
+      case '0':
+        return '-'
+      case '1':
+        return 'Y'
+      case '2':
+        return 'G'
+    }
+  }).join('')
+}
+
+const getWordCountForKey = (word, key, wordList) => {
+  const answers = getAnswersMatchingKey(word, key, wordList)
+  if (answers.length === 0) {
+    return 0
+  }
+  // console.log(answers.slice(0, 10))
+  return answers.length
+}
+
+const evaluateWord = (word) => {
+  const result = {}
+  let count
+  for (let i=0;i<=242;i++) {
+    const key = numToKey(i)
+    count = getWordCountForKey(word, key, starterList)
+    if (count > 0) {
+      result[key] = count
+    }
+  }
+  console.log(result)
+  return result
+}
 
 const testCases = () => {
   const cases = [
@@ -47,13 +92,19 @@ const testCases = () => {
       e: 'GG-YG',
     },
   ]
-  cases.forEach((c) => {
-    const s = stringEval(c.guess, c.answer)
-    console.log(s, c.e, s === c.e)
+  const testResult = cases.map((c) => {
+    // const e = evaluateToString(c.guess, c.answer)
+    const e = createEvaluator(c.answer)(c.guess)
+    return e === c.e
   })
+  if (every(testResult)) {
+    console.log('EVAL OK')
+  } else {
+    console.log('EVAL FAIL')
+  }
 }
 
-const answers = ['PICKY', 'ASIDE', 'WEARY', 'GRIPE', 'PLUCK', 'CHAMP', 'BRAKE', 'ABBEY']
+const answers = ['ASIDE', 'WEARY', 'PLUCK', 'BRAKE', 'ABBEY']
 
 const getGuess = (arr) => {
   return arr[Math.floor(Math.random() * arr.length)]
@@ -77,37 +128,18 @@ class Counter {
 
 const solver = (answer) => {
   let filtered = starterList.slice()
-  const guesses = [getGuess(filtered)]
+  const guesses = [_.sample(starterList)]
   let e
   let guess
+  let stringEval
   while (true) {
     guess = guesses[guesses.length - 1]
     if (guess === answer) {
       return guesses
     }
-    e = evaluate(guess, answer)
-    filtered = filterWords(guess, e, filtered)
-    guesses.push(getGuess(filtered))
-
-    // IF THERE IS A BUG do not run forever
-    if (guesses.length > 30) {
-      return 'FAIL', guesses
-    }
-  }
-}
-
-const newSolver = (answer) => {
-  let filtered = starterList.slice()
-  const guesses = [getGuess(filtered)]
-  let e
-  let guess
-  while (true) {
-    guess = guesses[guesses.length - 1]
-    if (guess === answer) {
-      return guesses
-    }
-    e = newEval(answer, guess)
-    filtered = newFilter({ word: guess, key: e }, filtered)
+    stringEval = evaluateToString(guess, answer)
+    filtered = filterWords({ word: guess, key: stringEval }, filtered)
+    // filtered = analysisFilter({ word: guess, key: stringEval}, filtered)
     guesses.push(getGuess(filtered))
 
     // IF THERE IS A BUG do not run forever
@@ -119,19 +151,15 @@ const newSolver = (answer) => {
 
 const testSolver = () => {
   let flag = 0
-  for (const answer of answers) {
-    // const a = solver(answer)
-    const a = newSolver(answer)
-    if (a[a.length - 1] !== answer) {
-      console.log('Solver is broken!')
-      console.log(a[a.length - 1], answer)
-      flag = 1
-    } else {
-      console.log(answer, a[a.length - 1])
-    }
-  }
-  if (flag === 0) {
-    console.log('TESTS OK')
+  const results = answers.map((answer) => {
+    const a = solver(answer)
+    // const a = newSolver(answer)
+    return a[a.length - 1] === answer
+  })
+  if (every(results)) {
+    console.log('SOLVER OK')
+  } else {
+    console.log('SOLVER FAIL')
   }
 }
 
@@ -157,82 +185,122 @@ const run = () => {
 const getAverageEliminated = (guess, answers) => {
   const results = []
   for (const answer of answers) {
-    const eliminatedCount = getEliminatedCount(guess, answer, starterList.slice())
+    const eliminatedCount = getEliminatedCount(guess, answer, starterList)
     results.push(eliminatedCount)
   }
-  // console.log(results)
   const avg = _.mean(results)
-  // console.log(avg)
   return avg
 }
 
 const newGetAverageEliminated = (guess, answers) => {
   const results = []
   for (const answer of answers) {
-    const eliminatedCount = newGetEliminatedCount(guess, answer, starterList)
+    const key = evaluateToString(guess, answer)
+    const eliminatedCount = getEliminatedCountWithAnswer(key, answer, starterList)
     results.push(eliminatedCount)
   }
-  // console.log(results)
   const avg = _.mean(results)
-  // console.log(avg)
   return avg
 }
 
-const judgeGuesses = (useNew = true) => {
-  const result = {
-    ...testResults,
-  }
-  // const result = {}
-  const guessSampleSize = 10
-  const answerSampleSize = 250
+const judgeGuesses = (testResults) => {
+  const newResults = {}
 
-  const guesses = _.sampleSize(starterList, guessSampleSize).filter((word) => {
-    return !Object.keys(result).includes(word)
+  const guessSampleSize = 60
+  const answerSampleSize = 180
+
+  const wordsRemaining = starterList.filter((word) => {
+    return !Object.keys(testResults).includes(word)
   })
-  if (guesses.length < guessSampleSize) {
-    console.log('filter worked', guesses.length)
-  }
+  console.log(`words remaining: ${wordsRemaining.length}`)
 
+  const guesses = _.sampleSize(wordsRemaining, guessSampleSize)
   const answers = _.sampleSize(starterList, answerSampleSize)
 
   for (const guess of guesses) {
-    if (useNew) {
-      result[guess] = newGetAverageEliminated(guess, answers)
-    } else {
-      result[guess] = getAverageEliminated(guess, answers)
-    }
+    console.log(guess)
+    // newResults[guess] = newGetAverageEliminated(guess, answers)
+    newResults[guess] = getAverageEliminated(guess, answers)
   }
 
-  const ranks = _.orderBy(
-    _.map(result, (v, k) => {
-      return {
-        word: k,
-        result: v,
-      }
-    }),
-    ['result'],
-    ['desc'],
-  )
+  // console.log(newResults)
 
-  // const ranks = _.sortBy(result, (v, k) => v)
-  // console.log(result)
+  const result = {
+    ...testResults,
+    ...newResults,
+  }
 
-  fs.writeFileSync('./test-results.json', JSON.stringify(result, null, 2))
+  const ordered = orderResults(result)
 
-  console.log(ranks.slice(0, 20))
+  saveResults(ordered, './new-result-list.json')
 }
 
 const testEliminator = () => {
+  console.log(answers)
   const answer = answers.slice().pop()
   console.log(answer)
   const guess = 'RAISE'
-  const eliminatedCount = getEliminatedCount(guess, answer, starterList.slice())
+  const eliminatedCount = getEliminatedCount(guess, answer, starterList)
   console.log(eliminatedCount)
 }
+
+const orderResults = (results) => {
+  const ordered = _.chain(results)
+    .map((val, key) => {
+      return {
+        word: key,
+        avg: val,
+      }
+    })
+    .orderBy((o) => o.avg, 'desc')
+    .value()
+  return ordered
+}
+
+const resultsToObject = (results) => {
+  return _.reduce(
+    results,
+    (result, value, key) => {
+      result[value.word] = value.avg
+      return result
+    },
+    {},
+  )
+}
+
+const saveResults = (results, filename) => {
+  // const ordered = orderResults(results)
+  fs.writeFileSync(filename, JSON.stringify(results, null, 2))
+}
+
+
+// const testResults = resultsToObject(resultList)
 
 // run()
 // testCases()
 // testSolver()
 // testEliminator()
-// getAverageEliminated('RAISE')
-judgeGuesses()
+// getAverageEliminated('RAISE', starterList)
+const testResults = require('./new-result-list.json')
+const reconst = resultsToObject(testResults)
+
+// judgeGuesses(reconst)
+
+// saveResults(testResults, './result-list.json')
+// const ordered = orderResults(oldTestResults)
+// console.log(ordered)
+
+// const reconst = resultsToObject(ordered)
+// console.log(reconst)
+
+if (require.main === module) {
+  const start = new Date()
+
+  // evaluateWord('FUZZY')
+
+  // testCases()
+  testSolver()
+
+  console.log(`Total time: ${(new Date() - start) / 1000} seconds`)  
+}
+

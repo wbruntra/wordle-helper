@@ -1,64 +1,80 @@
+import _ from 'lodash'
 import masterWords from './words.json'
+import spanishList from './data/valid-word-list-xl.json'
 import starterList from './starterList.json'
-// const starterList = masterWords.filter((word) => {
-//   return word.length === 5
-// })
 
-export const containFilter = (words, letters, reverse = false) => {
-  let filtered = words.slice()
-  for (let c of letters) {
-    filtered = filtered.filter((word) => {
-      const test = word.includes(c)
-      if (reverse) {
-        return !test
-      }
-      return test
+export const getCanonical = (s, removeAccents = false) => {
+  let canonical = s.slice()
+  const accents = {
+    Á: 'A',
+    É: 'E',
+    Í: 'I',
+    Ó: 'O',
+    Ú: 'U',
+    Ü: 'U',
+  }
+  if (removeAccents) {
+    _.forEach(accents, (plainVowel, accented) => {
+      canonical = canonical.replace(accented, plainVowel)
     })
   }
-  return filtered
+
+  return canonical
 }
 
-export const locationFilter = (words, correctLetters) => {
-  let filtered = words.slice()
-  for (let letter of correctLetters) {
-    filtered = filtered.filter((word) => {
-      const test = word[letter.position] === letter.name
-    })
-  }
-}
-
-export const isCorrect = (guess, answer) => {
-  return guess === answer
-}
-
-export const stringEval = (guess, answer) => {
-  let result = ''
-
-  const e = evaluate(guess, answer)
-
-  result = e.map((item, i) => {
-    if (item.exact) {
-      return 'G'
-    }
-    if (!item.exact && item.present) {
-      return 'Y'
+/**
+ * @param {string} key
+ */
+export const getCanonicalKey = (key) => {
+  let result = key.toLocaleUpperCase().split('')
+  result = result.map((k) => {
+    if ('YG'.includes(k)) {
+      return k
     }
     return '-'
   })
   return result.join('')
 }
 
+/**
+ * Get all words that produce given key from guess
+ * @param {string} guess - The guessed word
+ * @param {string} key - The guessed word
+ * @param {string[]} wordList
+ */
+export const getAnswersMatchingKey = (guess, key, wordList) => {
+  const canonicalKey = getCanonicalKey(key)
+  const result = wordList.filter((word) => {
+    const tempKey = evaluateToString(guess, word)
+    return canonicalKey === tempKey
+  })
+  return result
+}
+
+export const guessReverser = (answer, key, wordList) => {
+  const canonicalKey = getCanonicalKey(key)
+  const result = wordList.filter((word) => {
+    const tempKey = evaluateToString(word, answer)
+    return canonicalKey === tempKey
+  })
+  return result
+}
+
+/**
+ * Create common `evaluation` for guess and answer pair
+ * @param {string} guess - The guessed word
+ * @param {string} answer - The correct answer
+ */
 export const evaluate = (guess, answer) => {
-  if (!guess) {
-    console.log(guess, answer)
-  }
-  let remainingAnswer = answer.slice()
+  let remainingAnswer = getCanonical(answer)
   const result = []
   for (let i = 0; i < guess.length; i++) {
     if (guess[i] === answer[i]) {
       result[i] = {
         exact: true,
+        present: true,
         name: guess[i],
+        code: 'G',
       }
       remainingAnswer = remainingAnswer.replace(guess[i], '-')
     }
@@ -72,6 +88,7 @@ export const evaluate = (guess, answer) => {
         exact: false,
         present: true,
         name: guess[i],
+        code: 'Y',
       }
       remainingAnswer = remainingAnswer.replace(guess[i], '-')
     } else {
@@ -79,144 +96,181 @@ export const evaluate = (guess, answer) => {
         exact: false,
         present: false,
         name: guess[i],
+        code: '-',
       }
     }
   }
   return result
 }
 
-const getCorrect = (evaluation) => {
-  let result = ''
-  for (let i = 0; i < evaluation.length; i++) {
-    if (evaluation[i].exact) {
-      result = result + evaluation[i].name
-    } else {
-      result = result + '-'
+/**
+ * Get correct letters in guess
+ * @param {Object} guess
+ * @param {string} guess.word - The guessed word
+ * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
+ */
+const getCorrect = (guess) => {
+  const { key, word } = guess
+  return key.split('').map((k, i) => {
+    if (k === 'G') {
+      return word[i]
     }
-  }
-  return result
+    return false
+  })
 }
 
-const getPresent = (evaluation) => {
-  let result = ''
-  for (let i = 0; i < evaluation.length; i++) {
-    if (!evaluation[i].exact && evaluation[i].present) {
-      result = result + evaluation[i].name
-    } else {
-      result = result + '-'
+/**
+ * Get letters present but not correct from word
+ * @param {Object} guess
+ * @param {string} guess.word - The guessed word
+ * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
+ */
+const getPresent = (guess) => {
+  const { key, word } = guess
+  return key.split('').map((k, i) => {
+    if (k === 'Y') {
+      return word[i]
     }
-  }
-  return result
+    return false
+  })
 }
 
-const getAbsent = (guess, correct, present) => {
-  let result = guess.slice()
-  const evals = correct + present
-  for (let c of evals) {
-    if (c !== '-') {
-      result = result.replace(c, '')
+/**
+ * Get letters absent from word
+ * @param {Object} guess
+ * @param {string} guess.word - The guessed word
+ * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
+ */
+const getAbsent = (guess) => {
+  const { key, word } = guess
+  return key.split('').map((k, i) => {
+    if (!'YG'.includes(k)) {
+      return word[i]
     }
-  }
-  return result
+    return false
+  })
 }
 
-const testWord = (word, correct, present, absent) => {
-  let remains = word.slice()
+/**
+ * Test whether word matches guess criteria
+ * @param {string} word - The word being evaluated for current `guess`
+ * @param {Object} guess
+ * @param {string} guess.word - The guessed word
+ * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
+ */
+const testWord = (word, guess) => {
   let i
+  let remains = getCanonical(word)
+
+  const correct = getCorrect(guess)
   for (i = 0; i < correct.length; i++) {
-    if (correct[i] !== '-' && correct[i] !== remains[i]) {
+    if (correct[i] && correct[i] !== remains[i]) {
       return false
     } else {
-      if (correct[i] !== '-') {
-        remains = remains.slice(0, i) + '-' + remains.slice(i + 1)
+      if (correct[i]) {
+        remains = replaceAtIndex(remains, i)
       }
     }
   }
+
+  const present = getPresent(guess)
   for (i = 0; i < present.length; i++) {
-    if (present[i] !== '-' && (!remains.includes(present[i]) || remains[i] === present[i])) {
+    if (present[i] && (!remains.includes(present[i]) || remains[i] === present[i])) {
       return false
     } else {
-      remains = remains.replace(present[i], '-')
+      if (present[i]) {
+        remains = remains.replace(present[i], '-')
+      }
     }
   }
+
+  const absent = getAbsent(guess)
+
   for (i = 0; i < absent.length; i++) {
     if (remains.includes(absent[i])) {
       return false
     }
-    remains = remains.replace(present[i], '-')
   }
   return true
 }
 
-export const filterWords = (guess, evaluation, words) => {
-  const correct = getCorrect(evaluation)
-  const present = getPresent(evaluation)
-  const absent = getAbsent(guess, correct, present)
-  // console.log(absent)
+/**
+ * Filter list of valid words using `guess`.
+ * @param {Object} guess
+ * @param {string} guess.word - The guessed word
+ * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
+ * @param {string[]} words - List of possible words
+ */
+export const filterWords = (guess, words) => {
   const filtered = words.filter((word) => {
-    return testWord(word, correct, present, absent)
+    return testWord(word, guess)
   })
   return filtered
 }
 
+/**
+ * Filter list of valid words using `answer`
+ * @param {string} key - The returned evaluation for the word, e.g. `..YYG`
+ * @param {string} answer - The correct answer
+ * @param {string[]} words - List of possible words producing `key` from `answer`
+ */
+export const filterWordsWithAnswer = (key, answer, words) => {
+  const filtered = words.filter((word) => {
+    const wordKey = evaluateToString(word, answer)
+    return key === wordKey
+  })
+  return filtered
+}
+
+export const getEliminatedCountWithAnswer = (key, answer, words) => {
+  const originalLength = words.length
+  const filtered = filterWordsWithAnswer(key, answer, words)
+  return originalLength - filtered.length
+}
+
+/**
+ * Get number of words eliminated from `words` by `guess`.
+ * @param {string} guess - The guessed word
+ * @param {string} answer - The correct answer
+ * @param {string[]} words - List of possible words
+ */
 export const getEliminatedCount = (guess, answer, words) => {
   const originalLength = words.length
 
-  const e = evaluate(guess, answer)
-  const filtered = filterWords(guess, e, words)
+  const stringEval = evaluateToString(guess, answer)
+  const filtered = filterWords({ word: guess, key: stringEval }, words)
 
   const eliminatedCount = originalLength - filtered.length
 
   return eliminatedCount
 }
 
-export const newGetEliminatedCount = (guess, answer, words) => {
-  const originalLength = words.length
-
-  const e = newEval(answer, guess)
-  const filtered = newFilter({ key: e, word: guess }, words)
-
-  const eliminatedCount = originalLength - filtered.length
-
-  return eliminatedCount
-}
-
-export const newEval = (answer, candidate) => {
-  let wordCopy = answer.slice()
-  let result = ''
-  for (let i = 0; i < candidate.length; i++) {
-    if (wordCopy[i] === candidate[i]) {
-      result = result + 'G'
-      wordCopy = wordCopy.slice(0, i) + '-' + wordCopy.slice(i + 1)
-    } else {
-      if (wordCopy.includes(candidate[i])) {
-        result = result + 'Y'
-        wordCopy = wordCopy.replace(candidate[i], '-')
-      } else {
-        result = result + '-'
-      }
-    }
-  }
-  return result
-}
-
+/**
+ * Determine whether `word` is valid, given `guess`.
+ * @param {string} word - The word being evaluated for current `guess`
+ * @param {Object} guess
+ * @param {string} guess.word - The guessed word
+ * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
+ */
 export const isWordValid = (word, guess) => {
-  let wordCopy = word.slice()
-  for (let i = 0; i < guess.word.length; i++) {
+  let wordCopy = getCanonical(word)
+  let guessWordCopy = getCanonical(guess.word)
+
+  for (let i = 0; i < guessWordCopy.length; i++) {
     if (guess.key[i] === 'G') {
-      if (wordCopy[i] !== guess.word[i]) {
+      if (wordCopy[i] !== guessWordCopy[i]) {
         return false
       } else {
         wordCopy = wordCopy.slice(0, i) + '-' + wordCopy.slice(i + 1)
       }
     } else if (guess.key[i] === 'Y') {
-      if (!wordCopy.includes(guess.word[i])) {
+      if (!wordCopy.includes(guessWordCopy[i])) {
         return false
       } else {
-        wordCopy = wordCopy.replace(guess.word[i], '-')
+        wordCopy = wordCopy.replace(guessWordCopy[i], '-')
       }
     } else {
-      if (wordCopy.includes(guess.word[i])) {
+      if (wordCopy.includes(guessWordCopy[i])) {
         return false
       }
     }
@@ -224,110 +278,212 @@ export const isWordValid = (word, guess) => {
   return true
 }
 
-export const newFilter = (guess, wordList) => {
-  return wordList.filter((word) => {
-    return isWordValid(word, guess)
-  })
+/**
+ * @param {string} str
+ * @param {number} idx
+ * @param {string} replacement
+ */
+const replaceAtIndex = (str, idx, replacement = '-') => {
+  let newString = str.split('')
+  newString[idx] = replacement
+  return newString.join('')
 }
 
-const removeCorrect = (evaluation, word) => {
-  let result = ''
-  const correct = getCorrect(evaluation)
-  for (let i = 0; i < correct.length; i++) {
-    if (correct[i] !== '-') {
-      result = result + word[i]
-    } else {
-      result = result = '-'
+/**
+ * @param {string} guess - Guessed word
+ * @param {string} answer - Correct answer
+ */
+export const evaluateToString = (guess, answer) => {
+  let remainingAnswer = getCanonical(answer)
+  let canonicalGuess = getCanonical(guess)
+  const result = []
+  for (let i = 0; i < canonicalGuess.length; i++) {
+    if (canonicalGuess[i] === remainingAnswer[i]) {
+      result[i] = 'G'
+      remainingAnswer = replaceAtIndex(remainingAnswer, i)
     }
   }
-  return result
+  for (let i = 0; i < canonicalGuess.length; i++) {
+    if (result[i]) {
+      continue
+    }
+    if (remainingAnswer.includes(canonicalGuess[i])) {
+      result[i] = 'Y'
+      remainingAnswer = remainingAnswer.replace(canonicalGuess[i], '-')
+    } else {
+      result[i] = '-'
+    }
+  }
+  return result.join('')
 }
 
-const filterUsingEvaluation = (evaluation, words) => {
-  const filtered = words.filter((word) => {
-    let remains = word.slice()
-    let result = true
-    for (let i = 0; i < evaluation.length; i++) {
-      let c = evaluation[i]
-      if (c.correct && word[i] !== c.name) {
-        return false
-      } else {
+export const createEvaluator = (answer) => {
+  const evaluator = (guess) => {
+    const key = Array(guess.length).fill(null)
+    const answerArray = getCanonical(answer).split('')
+    const guessArray = getCanonical(guess).split('')
+
+    for (let i = 0; i < guessArray.length; i++) {
+      if (guessArray[i] === answerArray[i]) {
+        key[i] = 'G'
+        answerArray[i] = '-'
       }
     }
-    return result
-  })
+
+    for (let i = 0; i < guessArray.length; i++) {
+      if (key[i] === 'G') {
+        continue
+      }
+      if (answerArray.indexOf(guessArray[i]) !== -1) {
+        key[i] = 'Y'
+        answerArray[answerArray.indexOf(guessArray[i])] = '-'
+      } else {
+        key[i] = '-'
+      }
+    }
+
+    return key.join('')
+  }
+
+  return evaluator
 }
 
-export const getEval = (guess) => {
-  const result = []
-  const word = guess.word
-  const key = guess.key
-  for (let i = 0; i < word.length; i++) {
-    if (key[i] === '+' || key[i] === 'G') {
-      result.push({
-        exact: true,
-        name: word[i],
-      })
-    } else if (key[i] === 'Y') {
-      result.push({
-        exact: false,
-        present: true,
-        name: word[i],
-      })
-    } else {
-      result.push({
-        exact: false,
-        present: false,
-        name: word[i],
-      })
-    }
-  }
+export const compareEvaluations = (answer, guess1, guess2) => {
+  const evaluator = createEvaluator(answer)
+  return evaluator(guess1) === evaluator(guess2)
+}
+
+/**
+ * @param {Object} guess
+ * @param {string} guess.word - The guessed word
+ * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
+ * @param {string[]} wordList
+ */
+export const analysisFilter = (guess, wordList) => {
+  const result = wordList.filter((potentialAnswer) => {
+    const evaluator = createEvaluator(potentialAnswer)
+    const potentialKey = evaluator(guess.word)
+    return potentialKey === guess.key
+  })
   return result
 }
 
-const run = () => {
-  // const answer = 'FAVOR'
-  // const guess = 'FAKIR'
-  // const doesntContain = getContainedLetters(e, true)
-  // const contains = getContainedLetters(e, false)
-  // const correct = getCorrect(e)
-  // const present = getPresent(e)
-  // const absent = getAbsent(guess, correct, present)
-  // console.log(e)
-  let e
-  let filtered = starterList
-  let guesses = ['SLANT', 'CARED', 'FAKIR']
-  guesses = ['WHERE', 'HEART', 'BOARS', 'POLAR', 'MANOR']
-  guesses = [
-    {
-      word: 'FUNNY',
-      key: '-----',
-    },
-    {
-      word: 'ABACI',
-      key: '----P',
-    },
-    {
-      word: 'DEIST',
-      key: '-PPP-',
-    },
-    {
-      word: 'GIVES',
-      key: 'P+-PP',
-    },
-  ]
-  for (let guess of guesses) {
-    // e = evaluate(guess, answer)
-    const answer = 'CARED'
-    e = newEval(answer, guess.word)
-    console.log(guess.word, e)
-    // filtered = filterWords(guess.word, e, filtered)
-  }
-
-  // let filtered = filterWords(guess, e, starterList)
-
-  // console.log(filtered.slice(0, 5))
-  // console.log(correct, present, absent)
+/**
+ * @param {Number} n - Number
+ */
+export const numToKey = (n) => {
+  const s = ('00000' + n.toString(3)).slice(-5)
+  return s
+    .split('')
+    .map((i) => {
+      switch (i) {
+        case '0':
+          return '-'
+        case '1':
+          return 'Y'
+        case '2':
+          return 'G'
+      }
+    })
+    .join('')
 }
-// if (module.)
-// run()
+
+export const getAllKeys = () => {
+  return Array(243)
+    .fill(1)
+    .map((x, i) => numToKey(i))
+}
+
+export const getKeyDictionary = (word, wordList) => {
+  const dictionary = Array(243)
+    .fill(1)
+    .reduce((accumulator, x, i) => {
+      const key = numToKey(i)
+      const matches = getAnswersMatchingKey(word, key, wordList).length
+      if (matches !== 0) {
+        return {
+          ...accumulator,
+          [key]: matches,
+        }
+      } else {
+        return accumulator
+      }
+    }, {})
+  // console.log('dict', dictionary)
+  return dictionary
+}
+
+/**
+ * Get number of matches in `wordList` for `word` using all possible keys
+ * @param {string} word
+ * @param {string[]} wordList
+ */
+export const getBins = (word, wordList) => {
+  // const allKeys = getAllKeys()
+  const bins = Array(243)
+    .fill(1)
+    .map((x, i) => {
+      const key = numToKey(i)
+      const matches = getAnswersMatchingKey(word, key, wordList).length
+      return matches
+    })
+    .filter((v) => v !== 0)
+  return bins.sort().reverse()
+}
+
+/**
+ * Get number of matches in `wordList` for `word` using all possible keys
+ * @param {string} word
+ * @param {string[]} wordList
+ */
+export const getPossibleKeys = (word, wordList) => {
+  const result = wordList.map((answer) => {
+    return evaluateToString(word, answer)
+  })
+  return _.uniq(result).sort()
+}
+
+/**
+ * Get number of matches in `wordList` for `word` using all possible keys
+ * @param {string} word
+ * @param {string[]} wordList
+ */
+export const getBinsEfficiently = (word, wordList, dictionary = false) => {
+  const allKeys = getPossibleKeys(word, wordList)
+  const bins = allKeys.reduce((accumulator, key) => {
+    const matches = getAnswersMatchingKey(word, key, wordList).length
+    if (matches !== 0) {
+      return {
+        ...accumulator,
+        [key]: matches,
+      }
+    } else {
+      return accumulator
+    }
+  }, {})
+  if (dictionary) {
+    return bins
+  }
+  return Object.values(bins).sort().reverse()
+}
+
+/**
+ * Get number of matches in `wordList` for `word` using all possible keys
+ * @param {string} word
+ * @param {string[]} wordList
+ */
+export const getBinsV2 = (word, wordList, dictionary = false, showMatches = false) => {
+  const result = {}
+  for (const answer of wordList) {
+    const key = evaluateToString(word, answer)
+    if (result[key]) {
+      result[key] = showMatches ? [...result[key], answer] : result[key] + 1
+    } else {
+      result[key] = showMatches ? [answer] : 1
+    }
+  }
+  if (dictionary) {
+    return result
+  }
+  return Object.values(result).sort().reverse()
+}
