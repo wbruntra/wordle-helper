@@ -1,13 +1,22 @@
-import { analysisFilter, filterWords, getBinsV2, getCanonical, getCanonicalKey } from './utils'
+import {
+  analysisFilter,
+  filterWords,
+  getBestHitFromFullList,
+  getBinsV2,
+  getCanonical,
+  getCanonicalKey,
+} from './utils'
 import { useRef, useState } from 'react'
 
-// import starterList from './data/valid-word-list-xl.json'
 import Guess from './Guess'
 import _ from 'lodash'
-import starterList from './data/words-common-7.json'
+// import officialList from './data/official-answers-alphabetical.json'
+// import starterList from './data/words-common-7.json'
+import startingList from './data/common-plus-official.json'
+import { wordsAtOrBelowLimit } from './scorers'
 
 const config = {
-  maxListLength: 20,
+  maxListLength: 36,
 }
 
 const getRandomSlice = (arr, size) => {
@@ -15,21 +24,59 @@ const getRandomSlice = (arr, size) => {
   return arr.slice(start, start + size)
 }
 
+const orderWordList = (wordList) => {
+  const unique_scorer = wordsAtOrBelowLimit(1)
+  const results = wordList.map((word) => {
+    const bins = getBinsV2(word, wordList)
+    return {
+      word,
+      score: unique_scorer(bins),
+    }
+  })
+  return _.orderBy(results, (o) => o.score, 'desc')
+}
+
+const orderEntireWordList = (filteredList, { only_filtered = false }) => {
+  const unique_scorer = wordsAtOrBelowLimit(1)
+
+  const filteredResults = filteredList.map((word) => {
+    const bins = getBinsV2(word, filteredList)
+    return {
+      word,
+      score: unique_scorer(bins),
+    }
+  })
+  const filteredOrder = _.orderBy(filteredResults, (o) => o.score, 'desc')
+  if (only_filtered || filteredOrder[0].score === filteredList.length) {
+    return filteredOrder
+  }
+
+  const results = startingList.map((word) => {
+    const bins = getBinsV2(word, filteredList)
+    return {
+      word,
+      score: unique_scorer(bins),
+    }
+  })
+  return _.orderBy(results, (o) => o.score, 'desc')
+}
+
 function App() {
   const [touched, setTouched] = useState(false)
   const [guesses, setGuesses] = useState([])
   const [word, setWord] = useState('')
   const [key, setKey] = useState('')
-  const [filtered, setFiltered] = useState(starterList.slice())
+  const [filtered, setFiltered] = useState(startingList.slice())
   const [mySlice, setMySlice] = useState(getRandomSlice(filtered, config.maxListLength))
   const inputEl = useRef(null)
   const [showDepth, setShowDepth] = useState(false)
   const [bins, setBins] = useState([])
   const [binsWord, setBinsWord] = useState('')
+  const [orderedWords, setOrderedWords] = useState([])
 
   const resetGuesses = () => {
     setGuesses([])
-    setFiltered(starterList)
+    setFiltered(startingList)
     setTouched(false)
   }
 
@@ -53,8 +100,14 @@ function App() {
     setKey('')
     setTouched(true)
 
-    let localFiltered = applyGuesses(starterList, newGuesses)
+    let localFiltered = applyGuesses(startingList, newGuesses)
     setFiltered(localFiltered)
+
+    if (localFiltered.length < 300) {
+      const newWordOrder = orderEntireWordList(localFiltered, { only_filtered: true })
+      setOrderedWords(newWordOrder)
+    }
+
     const newSlice =
       localFiltered.length > config.maxListLength
         ? getRandomSlice(localFiltered, config.maxListLength)
@@ -65,7 +118,7 @@ function App() {
   }
 
   const previewGuess = (word, guesses) => {
-    let localFiltered = starterList.slice()
+    let localFiltered = startingList.slice()
     for (const guess of guesses) {
       if (guess.word === word) {
         break
@@ -95,13 +148,15 @@ function App() {
   }
 
   const applyFilters = () => {
-    let localFiltered = applyGuesses(starterList, guesses)
+    let localFiltered = applyGuesses(startingList, guesses)
     setFiltered(localFiltered)
-    const newSlice =
-      localFiltered.length > config.maxListLength
-        ? getRandomSlice(localFiltered, config.maxListLength)
-        : localFiltered
-    setMySlice(newSlice)
+    const newOrdered = orderEntireWordList(localFiltered, { only_filtered: false })
+    setOrderedWords(newOrdered)
+    // const newSlice =
+    //   localFiltered.length > config.maxListLength
+    //     ? getRandomSlice(localFiltered, config.maxListLength)
+    //     : localFiltered
+    // setMySlice(newSlice)
   }
 
   const toPct = (fraction) => {
@@ -126,17 +181,13 @@ function App() {
         <thead>
           <tr>
             <th scope="col">KEY</th>
-            <th scope="col">
-              WORDS
-            </th>
-            <th scope="col">
-              # OF MATCHES
-            </th>
+            <th scope="col">WORDS</th>
+            <th scope="col"># OF MATCHES</th>
           </tr>
         </thead>
         <tbody>
           <tr>
-            <td style={{ width: '25%' }}>Chance of unique answer</td>
+            <td style={{ width: '35%' }}>Chance of unique answer</td>
             <td>{toPct(uniqueWords / totalWords)}</td>
             <td>{uniqueWords}</td>
           </tr>
@@ -160,10 +211,10 @@ function App() {
             return (
               <tr key={`bin-${i}`}>
                 <td>{Object.keys(bin)[0]}</td>
-                <td className="ps-3">
+                <td className="">
                   {`${matches < 20 ? Object.values(bin)[0].join(', ') : '[too many to show]'}`}
                 </td>
-                <td className="ps-3">{matches}</td>
+                <td className="">{matches}</td>
               </tr>
             )
           })}
@@ -188,25 +239,26 @@ function App() {
             </div>
           </>
         )}
-        <form className="mb-3" onSubmit={addGuess}>
-          <fieldset className="mb-3">
-            <input
-              className="font-mono"
-              ref={inputEl}
-              value={word}
-              onChange={(e) => setWord(e.target.value.toUpperCase())}
-              placeholder="word"
-            />
-          </fieldset>
-          <fieldset className="mb-3">
-            <input
-              className="font-mono"
-              value={key}
-              onChange={(e) => setKey(e.target.value.toUpperCase())}
-              placeholder="result"
-            />
-          </fieldset>
-          {/* <fieldset className="mb-0">
+        <div className="row justify-content-center">
+          <form className="mb-3 col-3" onSubmit={addGuess}>
+            <fieldset className="mb-3">
+              <input
+                className="font-mono form-control"
+                ref={inputEl}
+                value={word}
+                onChange={(e) => setWord(e.target.value.toUpperCase())}
+                placeholder="word"
+              />
+            </fieldset>
+            <fieldset className="mb-3">
+              <input
+                className="font-mono form-control"
+                value={key}
+                onChange={(e) => setKey(e.target.value.toUpperCase())}
+                placeholder="result"
+              />
+            </fieldset>
+            {/* <fieldset className="mb-0">
             <label>Show preview?</label>
             <input
               type="checkbox"
@@ -218,8 +270,10 @@ function App() {
               placeholder="Show Preview"
             />
           </fieldset> */}
-          <input className="btn btn-primary" type="submit" value="Add Guess" />
-        </form>
+            <input className="btn btn-primary btn-sm" type="submit" value="Add Guess" />
+          </form>
+        </div>
+
         <ul className="text-center mb-4">
           {guesses.map((guess, i) => {
             return (
@@ -245,38 +299,73 @@ function App() {
           })}
         </ul>
         <p>
-          <button className="btn btn-primary" onClick={applyFilters}>
-            Re-apply Filters
+          <button className="btn btn-primary btn-sm" onClick={applyFilters}>
+            Use Full Wordlist
           </button>
-          <button className="btn btn-primary ms-3" onClick={resetGuesses}>
+          <button className="btn btn-primary btn-sm ms-3" onClick={resetGuesses}>
             Clear Guesses
           </button>
         </p>
+        <hr style={{ color: 'white' }} />
 
         <p>
           There {filtered.length === 1 ? 'is ' : 'are'} {filtered.length} word
           {filtered.length === 1 ? '' : 's'} left
         </p>
         {!showDepth && (
-          <ul>
-            {mySlice.map((word, i) => {
-              return <li key={`word-${i}`}>{word}</li>
-            })}
-          </ul>
+          <div className="row justify-content-center mb-3">
+            <table className="table table-dark table-striped mt-3 w-50">
+              <thead>
+                <tr>
+                  <th scope="col">WORD</th>
+                  <th scope="col">CHANCE TO SOLVE</th>
+                </tr>
+              </thead>
+              <tbody>
+                {orderedWords.slice(0, 10).map((word, i) => {
+                  return (
+                    <tr key={`ordered-${i}`}>
+                      <td>{word.word}</td>
+                      <td>{((100 * word.score) / filtered.length).toFixed(1)}%</td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          //   {mySlice.map((word, i) => {
+          //     return (
+          //       <div className="col-2" key={`word-${i}`}>
+          //         {word}
+          //       </div>
+          //     )
+          //   })}
+          // </div>
         )}
+        <hr style={{ color: 'white' }} />
       </div>
       <div className="container">
         {showDepth ? (
           <p className="selectable" onClick={() => setShowDepth(false)}>
-            Hide Table
+            Hide Details
           </p>
         ) : (
           <p className="selectable" onClick={() => setShowDepth(true)}>
-            Show Table
+            Show Details for Last Guess
           </p>
         )}
         {showDepth && (
           <>
+            {/* <button
+              className="btn btn-primary btn-sm mb-2"
+              onClick={() => {
+                previewGuess(word, guesses)
+              }}
+            >
+              Update Table For Current Word
+            </button> */}
+
             <h2>{binsWord}</h2>
             {renderBins(bins)}
           </>

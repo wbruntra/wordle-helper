@@ -17,8 +17,8 @@ import {
   smallBins,
   sumLogs,
   sumRoots,
-  wordsBelowLimit,
-} from './scorers'
+  wordsAtOrBelowLimit,
+} from './src/scorers'
 
 import db from './db_connection'
 import md5 from 'md5'
@@ -26,25 +26,24 @@ import wordList from './results/official-answers.json'
 
 // import wordList from './results/words-common-7.json'
 
-
 const sleep = (ms) => {
   const time = ms / 1000
   return new Promise((resolve) => setTimeout(resolve, ms))
 }
 
-const binAnalysis = (word, wordList) => {
+const binAnalysis = (word, wordList, { binSizes }) => {
   const bins = getBinsV2(word, wordList)
   const totalWords = wordList.length
 
-  const limits = [1, 4, 9, 19]
+  const limits = binSizes.slice()
 
   const entries = limits.map((l) => {
-    const captured = wordsBelowLimit(l)(bins)
+    const captured = wordsAtOrBelowLimit(l)(bins)
     return {
       word,
       bin_size: l,
       words_in_bins: captured,
-      pct_captured: 100 * captured / totalWords,
+      pct_captured: (100 * captured) / totalWords,
     }
   })
 
@@ -63,8 +62,8 @@ const scoreWord = (word, wordList) => {
     small_bins_20: smallBins(bins, 20),
     small_bins_30: smallBins(bins, 30),
     small_bins_50: smallBins(bins, 50),
-    words_unique: wordsBelowLimit(1),
-    words_less_than_5: wordsBelowLimit(4),
+    words_unique: wordsAtOrBelowLimit(1),
+    words_less_than_5: wordsAtOrBelowLimit(4),
   }
 
   return entry
@@ -80,7 +79,7 @@ const fill_bins = async () => {
   const dbWords = await db('words').select()
   const words = dbWords.map((w) => w.word)
   for (const word of words) {
-    let entries = binAnalysis(word, wordList)
+    let entries = binAnalysis(word, wordList, { binSizes: [30, 40, 50] })
     // console.log(entry)
     entries = entries.map((entry) => {
       return {

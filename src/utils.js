@@ -1,5 +1,8 @@
+import { miniMax, sumRoots, wordsAtOrBelowLimit } from './scorers'
+
 import _ from 'lodash'
 import masterWords from './words.json'
+import md5 from 'md5'
 import spanishList from './data/valid-word-list-xl.json'
 import starterList from './starterList.json'
 
@@ -486,4 +489,182 @@ export const getBinsV2 = (word, wordList, dictionary = false, showMatches = fals
     return result
   }
   return Object.values(result).sort().reverse()
+}
+
+export const getProportionOfWordsInBinsBelowLimit = (bins, limit) => {
+  const totalWords = _.sum(bins)
+  const filteredBins = bins.filter((size) => size < limit)
+  const lessThanLimitWords = _.sum(filteredBins)
+  return lessThanLimitWords / totalWords
+}
+
+export const getBestChoice = async (
+  wordList,
+  fullWordList,
+  {
+    scoring_method = 'random',
+    verbose = false,
+    bin_limit = 1,
+    strictness_proportion = 1,
+    db,
+  } = {},
+) => {
+  if (wordList.length === 1) {
+    return { word: wordList[0], score: 999 }
+  }
+  const wordlist_hash = md5(JSON.stringify(wordList)).slice(0, 20)
+
+  let scorer
+  let best
+
+  switch (scoring_method) {
+    case 'easy_mode':
+      const overallBest = getBestHitFromFullList(wordList, fullWordList, {
+        limit: bin_limit,
+        strictness_proportion: strictness_proportion,
+        verbose,
+      })
+      if (db) {
+        await db('cached_evaluations').insert({
+          best_word: overallBest.word,
+          score: overallBest.score,
+          wordlist_hash,
+          method: scoring_method,
+        })
+      }
+
+      return overallBest
+    case 'most_in_bins':
+      scorer = wordsAtOrBelowLimit(bin_limit)
+      break
+    case 'sum_roots':
+      scorer = sumRoots
+      break
+    case 'minimax':
+      scorer = miniMax
+      break
+    case 'random':
+      return {
+        word: _.sample(wordList),
+      }
+  }
+
+  if (db) {
+    best = await getCachedAnswer(wordlist_hash, scoring_method, db)
+
+    if (best) {
+      return best
+    }
+  }
+
+  const result = []
+
+  for (const word of wordList) {
+    let bins = getBinsV2(word, wordList)
+
+    result.push({
+      word,
+      score: scorer(bins),
+    })
+  }
+
+  best = _.maxBy(result, (r) => r.score)
+
+  const entry = {
+    best_word: best.word,
+    score: best.score,
+    wordlist_hash,
+    method: scoring_method,
+  }
+
+  if (db) {
+    await db('cached_evaluations').insert(entry)
+  }
+
+  return best
+}
+
+export const getBestHitFromFullList = (
+  filteredList,
+  allWords,
+  { limit = 1, verbose = false, strictness_proportion = 1, get_all_matches = false },
+) => {
+  const scorer = wordsAtOrBelowLimit(limit)
+
+  const acceptable_unique_proportion = strictness_proportion
+
+  const filteredScores = []
+  let proportion
+
+  for (const word of filteredList) {
+    const normalBins = getBinsV2(word, filteredList)
+    const score = scorer(normalBins)
+    filteredScores.push({
+      word,
+      score,
+    })
+  }
+
+  const bestFiltered = _.maxBy(filteredScores, (o) => o.score)
+
+  if (verbose) {
+    console.log(`${filteredList.length} left. Best filtered`, bestFiltered)
+  }
+
+  if (bestFiltered.score >= acceptable_unique_proportion * filteredList.length) {
+    verbose && console.log(`Returning filtered ${bestFiltered.word}`)
+    return {
+      word: bestFiltered.word,
+      score: bestFiltered.score,
+    }
+  }
+
+  const allScores = []
+
+  for (const word of allWords) {
+    const easyBins = getBinsV2(word, filteredList)
+    const score = scorer(easyBins)
+    if (score === filteredList.length) {
+      verbose && console.log(`Found word to discover answer with certainty:`, word, score)
+      return {
+        word,
+        score,
+      }
+    } else {
+      allScores.push({
+        word,
+        score,
+      })
+    }
+  }
+
+  const best = _.maxBy(allScores, (o) => o.score)
+
+  if (verbose) {
+    console.log(`Best overall`, best)
+  }
+
+  proportion = getProportionOfWordsInBinsBelowLimit(getBinsV2(best.word, filteredList), limit)
+
+  verbose && console.log(`End. Returning ${best.word}`)
+  return best
+}
+
+const getCachedAnswer = async (wordlist_hash, method, db) => {
+  const bestWord = await db('cached_evaluations')
+    .select()
+    .where({
+      wordlist_hash,
+      method,
+    })
+    .first()
+
+  if (!bestWord) {
+    return null
+  }
+
+  return {
+    word: bestWord.best_word,
+    score: bestWord.score,
+  }
 }

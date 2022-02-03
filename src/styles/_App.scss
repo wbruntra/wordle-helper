@@ -66,11 +66,26 @@ $dark-gray: #282c34;
 .entry-form {
   input[type='text'] {
     background-color: $dark-gray;
-    font-size: 2em;
+    font-size: 2.5em;
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+    text-align: center;
   }
 }
 
 .selectable {
   cursor: pointer;
+}
+
+.form-control,
+.form-control:focus {
+  background: none;
+  border: none;
+  border-bottom: 1px solid #434a52;
+  border-radius: 0;
+  box-shadow: none;
+  outline: none;
+  color: inherit;
+  font-size: 2em;
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
+  // text-align: center;
 }

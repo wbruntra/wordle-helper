@@ -36,11 +36,10 @@ export const smallBins = (maxBinSize) => {
   return binScorer
 }
 
-export const wordsBelowLimit = (maxBinSize) => {
+export const wordsAtOrBelowLimit = (limit) => {
   const binScorer = (bins) => {
-    const small = bins.filter((size) => size <= maxBinSize)
+    const small = bins.filter((size) => size <= limit)
     return _.sum(small)
   }
   return binScorer
 }
-
