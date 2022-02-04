@@ -25,15 +25,19 @@ ul {
 
 .delete {
   margin-left: 36px;
-  cursor: pointer;
+  padding: 6px;
+  cursor: pointer;  
 }
 
-.box {
+.letter-box {
+  // display: inline-block;
+  // margin-left: 8px;
+  // padding: 4px 14px !important;
+  // width: auto !important;
+  // width: 40px;
+  padding: 2px 12px;
   display: inline-block;
   margin-left: 8px;
-  padding: 4px 14px !important;
-  width: auto !important;
-  // width: 40px;
 
   &.missed-guess {
     background-color: #4b4f64 !important;

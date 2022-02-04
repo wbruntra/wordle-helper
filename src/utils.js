@@ -198,20 +198,6 @@ const testWord = (word, guess) => {
 }
 
 /**
- * Filter list of valid words using `guess`.
- * @param {Object} guess
- * @param {string} guess.word - The guessed word
- * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
- * @param {string[]} words - List of possible words
- */
-export const filterWords = (guess, words) => {
-  const filtered = words.filter((word) => {
-    return testWord(word, guess)
-  })
-  return filtered
-}
-
-/**
  * Filter list of valid words using `answer`
  * @param {string} key - The returned evaluation for the word, e.g. `..YYG`
  * @param {string} answer - The correct answer
@@ -229,23 +215,6 @@ export const getEliminatedCountWithAnswer = (key, answer, words) => {
   const originalLength = words.length
   const filtered = filterWordsWithAnswer(key, answer, words)
   return originalLength - filtered.length
-}
-
-/**
- * Get number of words eliminated from `words` by `guess`.
- * @param {string} guess - The guessed word
- * @param {string} answer - The correct answer
- * @param {string[]} words - List of possible words
- */
-export const getEliminatedCount = (guess, answer, words) => {
-  const originalLength = words.length
-
-  const stringEval = evaluateToString(guess, answer)
-  const filtered = filterWords({ word: guess, key: stringEval }, words)
-
-  const eliminatedCount = originalLength - filtered.length
-
-  return eliminatedCount
 }
 
 /**
@@ -397,43 +366,6 @@ export const getAllKeys = () => {
     .map((x, i) => numToKey(i))
 }
 
-export const getKeyDictionary = (word, wordList) => {
-  const dictionary = Array(243)
-    .fill(1)
-    .reduce((accumulator, x, i) => {
-      const key = numToKey(i)
-      const matches = getAnswersMatchingKey(word, key, wordList).length
-      if (matches !== 0) {
-        return {
-          ...accumulator,
-          [key]: matches,
-        }
-      } else {
-        return accumulator
-      }
-    }, {})
-  // console.log('dict', dictionary)
-  return dictionary
-}
-
-/**
- * Get number of matches in `wordList` for `word` using all possible keys
- * @param {string} word
- * @param {string[]} wordList
- */
-export const getBins = (word, wordList) => {
-  // const allKeys = getAllKeys()
-  const bins = Array(243)
-    .fill(1)
-    .map((x, i) => {
-      const key = numToKey(i)
-      const matches = getAnswersMatchingKey(word, key, wordList).length
-      return matches
-    })
-    .filter((v) => v !== 0)
-  return bins.sort().reverse()
-}
-
 /**
  * Get number of matches in `wordList` for `word` using all possible keys
  * @param {string} word
@@ -444,30 +376,6 @@ export const getPossibleKeys = (word, wordList) => {
     return evaluateToString(word, answer)
   })
   return _.uniq(result).sort()
-}
-
-/**
- * Get number of matches in `wordList` for `word` using all possible keys
- * @param {string} word
- * @param {string[]} wordList
- */
-export const getBinsEfficiently = (word, wordList, dictionary = false) => {
-  const allKeys = getPossibleKeys(word, wordList)
-  const bins = allKeys.reduce((accumulator, key) => {
-    const matches = getAnswersMatchingKey(word, key, wordList).length
-    if (matches !== 0) {
-      return {
-        ...accumulator,
-        [key]: matches,
-      }
-    } else {
-      return accumulator
-    }
-  }, {})
-  if (dictionary) {
-    return bins
-  }
-  return Object.values(bins).sort().reverse()
 }
 
 /**
@@ -512,7 +420,7 @@ export const getBestChoice = async (
   if (wordList.length === 1) {
     return { word: wordList[0], score: 999 }
   }
-  const wordlist_hash = md5(JSON.stringify(wordList)).slice(0, 20)
+  const wordlist_hash = md5(JSON.stringify(wordList))
 
   let scorer
   let best
@@ -667,4 +575,44 @@ const getCachedAnswer = async (wordlist_hash, method, db) => {
     word: bestWord.best_word,
     score: bestWord.score,
   }
+}
+
+export const reclassifyAllForAnswer = (answer, wordList, { stop_after_one = false }) => {
+  let results = []
+  for (const word of wordList) {
+    if (word === answer) {
+      continue
+    }
+    const key = evaluateToString(word, answer)
+    const filtered = analysisFilter(
+      {
+        word,
+        key,
+      },
+      wordList,
+    )
+    if (stop_after_one && filtered.length === 1) {
+      return [{
+        word,
+        filtered,
+        key,
+      }]
+    }
+    results.push({
+      word,
+      filtered,
+      key,
+    })
+  }
+
+  results = results.filter((a) => a.filtered.length === 1)
+  results = _.orderBy(results, (a) => a.filtered.length, 'asc')
+  return results
+}
+
+export const isGuessableInOne = (answer, wordList) => {
+  let classifiedKeys = reclassifyAllForAnswer(answer, wordList, { stop_after_one: true })
+  let result = classifiedKeys.filter((r) => r.filtered.length === 1)
+  console.log(answer, result[0])
+  return result.length > 0
 }

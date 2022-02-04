@@ -9,6 +9,7 @@ exports.up = function (knex) {
     table.string('answer')
     table.integer('guesses')
     table.string('method')
+    table.string('wordlist_hash')
   })
 }
 

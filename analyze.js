@@ -1,20 +1,4 @@
-import {
-  analysisFilter,
-  createEvaluator,
-  evaluateToString,
-  filterWords,
-  filterWordsWithAnswer,
-  getAllKeys,
-  getAnswersMatchingKey,
-  getBestChoice,
-  getBestHitFromFullList,
-  getBins,
-  getBinsV2,
-  getEliminatedCount,
-  getEliminatedCountWithAnswer,
-  getKeyDictionary,
-  getProportionOfWordsInBinsBelowLimit,
-} from './src/utils'
+import { analysisFilter, createEvaluator, getBestChoice } from './src/utils'
 
 import _ from 'lodash'
 import db from './db_connection'
@@ -53,6 +37,7 @@ const getOldResult = async (starting_word, answer, scoring_method) => {
 
 export const play = async (
   starting_word,
+  fullWordList,
   {
     method = 'random',
     chosen_answer,
@@ -83,7 +68,7 @@ export const play = async (
     key = createEvaluator(answer)(guess)
 
     filtered = analysisFilter({ word: guess, key }, filtered)
-    best = await getBestChoice(filtered, {
+    best = await getBestChoice(filtered, fullWordList, {
       scoring_method: method,
       easy_mode_bin_limit: binLimit,
       strictness_proportion,
@@ -96,30 +81,44 @@ export const play = async (
 
   const gameWon = guesses.slice(-1)[0] === answer
 
+  // const wordlist_hash = md5(JSON.stringify(fullWordList))
+
   const entry = {
     answer,
     starting_word: guesses[0],
     guesses: gameWon ? guesses.length : null,
     method,
     won: gameWon,
+    // wordlist_hash,
   }
 
   return db('records').insert(entry)
 }
 
 const trial = async (starting_word, { do_all_words = false, allow_reruns = false } = {}) => {
-  // methods = ['maximize_keys', 'sum_logs', 'sum_roots', 'first_word', 'best_rootscore', 'minimax', 'random', 'small_bins', 'most_unique', 'easy_mode']
+  // const methods = [
+  //   'maximize_keys',
+  //   'sum_logs',
+  //   'sum_roots',
+  //   'first_word',
+  //   'best_rootscore',
+  //   'minimax',
+  //   'random',
+  //   'small_bins',
+  //   'most_unique',
+  //   'easy_mode',
+  // ]
   const start = new Date()
-  const method = 'easy_mode'
+  const method = 'sum_roots'
 
   let answers = do_all_words ? fullWordList : _.sampleSize(fullWordList, 200)
-  answers = fullWordList.slice(0, 200)
+  // answers = fullWordList.slice(0, 200)
 
+  console.log(starting_word, method)
   for (const answer of answers) {
     const oldResult = await getOldResult(starting_word, answer, method)
-    // console.log(starting_word, answer, method, oldResult)
     if (!oldResult || allow_reruns) {
-      const r = await play(starting_word, { method, chosen_answer: answer, guess_limit: 3 })
+      const r = await play(starting_word, fullWordList, { method, chosen_answer: answer })
       // console.log(`New word ${answer}`, 'record id', r)
     }
   }
@@ -130,7 +129,7 @@ const trials = async () => {
   // await trial('LATER')
   // return
   let top_words
-  top_words = await db('words').select().orderBy('sqrt_score', 'desc').limit(15)
+  top_words = await db('words').select().orderBy('most_keys', 'desc').limit(15)
 
   // top_words = await db.raw(`SELECT word, words_in_bins as less_than_20, pct_captured
   // from word_bins wb
@@ -138,14 +137,14 @@ const trials = async () => {
   // and wordlist_hash = "6158b668573f59b302882ed542f8c3f4"
   // order by words_in_bins desc limit 10;`)
 
-  top_words = top_words.map((w) => w.word).reverse()
+  top_words = top_words.map((w) => w.word)
   // top_words = ['CRANE', 'STALE', 'STARE', 'TRACE']
 
   // top_words = ['TABLE']
 
   for (const top_word of top_words) {
     console.log(top_word)
-    await trial(top_word, { allow_reruns: false })
+    await trial(top_word, { allow_reruns: false, do_all_words: true })
   }
 }
 

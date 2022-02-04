@@ -10,9 +10,7 @@ exports.up = function (knex) {
     table.float('sqrt_score')
     table.integer('mini_max')
     table.integer('most_keys')
-    table.integer('small_bins_20')
-    table.integer('small_bins_30')
-    table.integer('small_bins_50')
+    // Hash is necessary because scores depend on wordlist
     table.string('wordlist_hash')
   })
 }

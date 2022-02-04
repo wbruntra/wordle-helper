@@ -2,14 +2,27 @@ export default function Guess({ guess }) {
   const getClasses = (k) => {
     switch (k) {
       case 'G':
-        return 'box green'
+        return 'letter-box green'
       case 'Y':
-        return 'box yellow'
+        return 'letter-box yellow'
       default:
-        return 'box white'
+        return 'letter-box white'
     }
   }
 
+  return (
+    <>
+      {/* <div className="row justify-content-center"> */}
+        {guess.key.split('').map((c, i) => {
+          return (
+            <div key={`letter-${i}`} className={`${getClasses(c)}`}>
+              {guess.word[i]}
+            </div>
+          )
+        })}
+      {/* </div> */}
+    </>
+  )
   return guess.key.split('').map((c, i) => {
     return (
       <div key={`letter-${i}`} className={getClasses(c)}>

@@ -1,6 +1,6 @@
 import _ from 'lodash'
 import { getBinsV2 } from './src/utils'
-import { smallBins } from './scorers'
+import { smallBins } from './src/scorers'
 import wordList from './results/official-answers.json'
 
 const meetsTest = (word) => {

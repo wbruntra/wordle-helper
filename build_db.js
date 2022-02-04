@@ -59,11 +59,6 @@ const scoreWord = (word, wordList) => {
     sqrt_score: sumRoots(bins),
     mini_max: miniMax(bins),
     most_keys: countPossibleKeys(bins),
-    small_bins_20: smallBins(bins, 20),
-    small_bins_30: smallBins(bins, 30),
-    small_bins_50: smallBins(bins, 50),
-    words_unique: wordsAtOrBelowLimit(1),
-    words_less_than_5: wordsAtOrBelowLimit(4),
   }
 
   return entry
@@ -79,8 +74,7 @@ const fill_bins = async () => {
   const dbWords = await db('words').select()
   const words = dbWords.map((w) => w.word)
   for (const word of words) {
-    let entries = binAnalysis(word, wordList, { binSizes: [30, 40, 50] })
-    // console.log(entry)
+    let entries = binAnalysis(word, wordList, { binSizes: [1, 5, 10, 30, 50, 100] })
     entries = entries.map((entry) => {
       return {
         ...entry,

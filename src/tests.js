@@ -3,11 +3,7 @@ import {
   analysisFilter,
   createEvaluator,
   evaluateToString,
-  filterWords,
-  filterWordsWithAnswer,
   getAnswersMatchingKey,
-  getEliminatedCount,
-  getEliminatedCountWithAnswer
 } from './utils'
 
 import fs from 'fs'
@@ -138,7 +134,7 @@ const solver = (answer) => {
       return guesses
     }
     stringEval = evaluateToString(guess, answer)
-    filtered = filterWords({ word: guess, key: stringEval }, filtered)
+    filtered = analysisFilter({ word: guess, key: stringEval }, filtered)
     // filtered = analysisFilter({ word: guess, key: stringEval}, filtered)
     guesses.push(getGuess(filtered))
 
@@ -180,81 +176,6 @@ const run = () => {
   for (const k of Object.keys(c.counter)) {
     console.log(k, c.counter[k] / tries)
   }
-}
-
-const getAverageEliminated = (guess, answers) => {
-  const results = []
-  for (const answer of answers) {
-    const eliminatedCount = getEliminatedCount(guess, answer, starterList)
-    results.push(eliminatedCount)
-  }
-  const avg = _.mean(results)
-  return avg
-}
-
-const newGetAverageEliminated = (guess, answers) => {
-  const results = []
-  for (const answer of answers) {
-    const key = evaluateToString(guess, answer)
-    const eliminatedCount = getEliminatedCountWithAnswer(key, answer, starterList)
-    results.push(eliminatedCount)
-  }
-  const avg = _.mean(results)
-  return avg
-}
-
-const judgeGuesses = (testResults) => {
-  const newResults = {}
-
-  const guessSampleSize = 60
-  const answerSampleSize = 180
-
-  const wordsRemaining = starterList.filter((word) => {
-    return !Object.keys(testResults).includes(word)
-  })
-  console.log(`words remaining: ${wordsRemaining.length}`)
-
-  const guesses = _.sampleSize(wordsRemaining, guessSampleSize)
-  const answers = _.sampleSize(starterList, answerSampleSize)
-
-  for (const guess of guesses) {
-    console.log(guess)
-    // newResults[guess] = newGetAverageEliminated(guess, answers)
-    newResults[guess] = getAverageEliminated(guess, answers)
-  }
-
-  // console.log(newResults)
-
-  const result = {
-    ...testResults,
-    ...newResults,
-  }
-
-  const ordered = orderResults(result)
-
-  saveResults(ordered, './new-result-list.json')
-}
-
-const testEliminator = () => {
-  console.log(answers)
-  const answer = answers.slice().pop()
-  console.log(answer)
-  const guess = 'RAISE'
-  const eliminatedCount = getEliminatedCount(guess, answer, starterList)
-  console.log(eliminatedCount)
-}
-
-const orderResults = (results) => {
-  const ordered = _.chain(results)
-    .map((val, key) => {
-      return {
-        word: key,
-        avg: val,
-      }
-    })
-    .orderBy((o) => o.avg, 'desc')
-    .value()
-  return ordered
 }
 
 const resultsToObject = (results) => {
