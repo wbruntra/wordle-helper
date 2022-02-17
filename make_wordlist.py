@@ -108,6 +108,7 @@ def get_all_official_words():
 
     return official_words
 
+
 def run_official():
     with open("./src/starterList.json") as f:
         official_words = json.load(f)
@@ -157,12 +158,23 @@ def make_wordlist_with_common(min_books_required):
 
     result = sorted(result)
 
-    with codecs.open(
-        f"./results/words-common-{min_books_required}.json", "w", "utf-8"
-    ) as f:
-        f.write(json.dumps(sorted(list(result)), indent=2, ensure_ascii=False))
+    # with codecs.open(
+    #     f"./results/words-common-{min_books_required}.json", "w", "utf-8"
+    # ) as f:
+    #     f.write(json.dumps(sorted(list(result)), indent=2, ensure_ascii=False))
 
     return sorted(result)
+
+
+def get_answer_coverage(wordlist):
+    with open('./results/official-answers-ordered-upper.json') as f:
+        official = json.load(f)
+
+    combined = set(official + wordlist)
+    d = len(combined) - len(wordlist)
+
+    a = f'Wordlist has {len(wordlist)} words, {100 - (100 * d/len(official)):.2f}% coverage'
+    print(a)
 
 
 # run()
@@ -177,6 +189,7 @@ if __name__ == "__main__":
     # modified_words = get_modified_words()
     # run_official()
     # use_counter()
-    make_wordlist_with_common(7)
+    common_wordlist = make_wordlist_with_common(4)
+    get_answer_coverage(common_wordlist)
 
 # print(modified_words)

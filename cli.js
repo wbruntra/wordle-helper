@@ -1,15 +1,8 @@
-// const inquirer = require('inquirer')
-// const wordList = require('./results/words-common-7.json')
-// const wordList = require('./results/official-answers.json')
-// const { getBestChoice, useFullListForAmazingHit } = require('./analyze')
-// const { analysisFilter, getCanonicalKey, getBinsV2 } = require('./src/utils')
-// const _ = require('lodash')
-
 import {
   analysisFilter,
   getBestChoice,
   getBestHitFromFullList,
-  getBinsV2,
+  getBins,
   getCanonicalKey,
 } from './src/utils'
 
@@ -23,7 +16,7 @@ const orderEntireWordList = (filteredList, startingList, { only_filtered = false
   const unique_scorer = wordsAtOrBelowLimit(1)
 
   const filteredResults = filteredList.map((word) => {
-    const bins = getBinsV2(word, filteredList)
+    const bins = getBins(word, filteredList)
     return {
       word,
       score: unique_scorer(bins),
@@ -35,7 +28,7 @@ const orderEntireWordList = (filteredList, startingList, { only_filtered = false
   }
 
   let results = startingList.map((word) => {
-    const bins = getBinsV2(word, filteredList)
+    const bins = getBins(word, filteredList)
     return {
       word,
       score: unique_scorer(bins),

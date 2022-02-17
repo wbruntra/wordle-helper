@@ -70,7 +70,7 @@ $dark-gray: #282c34;
 .entry-form {
   input[type='text'] {
     background-color: $dark-gray;
-    font-size: 2.5em;
+    font-size: 1.7em;
     font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
     text-align: center;
   }
@@ -89,7 +89,17 @@ $dark-gray: #282c34;
   box-shadow: none;
   outline: none;
   color: inherit;
-  font-size: 2em;
+  font-size: 1.7em;
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New', monospace;
   // text-align: center;
+}
+
+.example {
+  font-size: 1.3em;
+}
+
+.tooltip-underline {
+  text-decoration-style: dotted;
+  text-decoration-line: underline;
+  text-underline-offset: 4px;
 }

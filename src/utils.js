@@ -7,7 +7,7 @@ import spanishList from './data/valid-word-list-xl.json'
 import starterList from './starterList.json'
 
 export const getCanonical = (s, removeAccents = false) => {
-  let canonical = s.slice()
+  let canonical = s.slice().trim()
   const accents = {
     Á: 'A',
     É: 'E',
@@ -29,7 +29,7 @@ export const getCanonical = (s, removeAccents = false) => {
  * @param {string} key
  */
 export const getCanonicalKey = (key) => {
-  let result = key.toLocaleUpperCase().split('')
+  let result = key.toLocaleUpperCase().trim().split('')
   result = result.map((k) => {
     if ('YG'.includes(k)) {
       return k
@@ -383,7 +383,7 @@ export const getPossibleKeys = (word, wordList) => {
  * @param {string} word
  * @param {string[]} wordList
  */
-export const getBinsV2 = (word, wordList, dictionary = false, showMatches = false) => {
+export const getBins = (word, wordList, { returnObject = false, showMatches = false } = {}) => {
   const result = {}
   for (const answer of wordList) {
     const key = evaluateToString(word, answer)
@@ -393,7 +393,7 @@ export const getBinsV2 = (word, wordList, dictionary = false, showMatches = fals
       result[key] = showMatches ? [answer] : 1
     }
   }
-  if (dictionary) {
+  if (returnObject) {
     return result
   }
   return Object.values(result).sort().reverse()
@@ -468,7 +468,7 @@ export const getBestChoice = async (
   const result = []
 
   for (const word of wordList) {
-    let bins = getBinsV2(word, wordList)
+    let bins = getBins(word, wordList)
 
     result.push({
       word,
@@ -505,7 +505,7 @@ export const getBestHitFromFullList = (
   let proportion
 
   for (const word of filteredList) {
-    const normalBins = getBinsV2(word, filteredList)
+    const normalBins = getBins(word, filteredList)
     const score = scorer(normalBins)
     filteredScores.push({
       word,
@@ -530,7 +530,7 @@ export const getBestHitFromFullList = (
   const allScores = []
 
   for (const word of allWords) {
-    const easyBins = getBinsV2(word, filteredList)
+    const easyBins = getBins(word, filteredList)
     const score = scorer(easyBins)
     if (score === filteredList.length) {
       verbose && console.log(`Found word to discover answer with certainty:`, word, score)
@@ -552,7 +552,7 @@ export const getBestHitFromFullList = (
     console.log(`Best overall`, best)
   }
 
-  proportion = getProportionOfWordsInBinsBelowLimit(getBinsV2(best.word, filteredList), limit)
+  proportion = getProportionOfWordsInBinsBelowLimit(getBins(best.word, filteredList), limit)
 
   verbose && console.log(`End. Returning ${best.word}`)
   return best
@@ -592,11 +592,13 @@ export const reclassifyAllForAnswer = (answer, wordList, { stop_after_one = fals
       wordList,
     )
     if (stop_after_one && filtered.length === 1) {
-      return [{
-        word,
-        filtered,
-        key,
-      }]
+      return [
+        {
+          word,
+          filtered,
+          key,
+        },
+      ]
     }
     results.push({
       word,

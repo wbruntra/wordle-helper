@@ -5,7 +5,7 @@ import {
   evaluateToString,
   getAllKeys,
   getAnswersMatchingKey,
-  getBinsV2,
+  getBins,
   getPossibleKeys,
 } from './utils'
 
@@ -27,9 +27,9 @@ const playTest = async (starting_word) => {
     console.log(filtered)
     for (const word of filtered) {
       console.log(word)
-      let kd = getBinsV2(word, filtered, { dictionary: true, showMatches: true })
-      const efficient = getBinsV2(word, filtered)
-      bins = getBinsV2(word, filtered)
+      let kd = getBins(word, filtered, { returnObject: true, showMatches: true })
+      const efficient = getBins(word, filtered)
+      bins = getBins(word, filtered)
       console.log('kd', kd)
       if (_.isEqual(bins, efficient)) {
         console.log('BINS OK')
@@ -44,7 +44,7 @@ const playTest = async (starting_word) => {
 
 const run = () => {
   const word = 'CHIME'
-  const bins = getBinsV2(word, wordList, true)
+  const bins = getBins(word, wordList, true)
   const sortBins = _.chain(bins)
     .map((value, key) => {
       return [key, value]
@@ -62,8 +62,8 @@ const testNewBins = async () => {
   for (const word of words) {
     // console.log(word)
     const dbWord = await db('words').select().where({ word }).first()
-    const bins = getBinsV2(word, wordList, true)
-    const betterBins = getBinsV2(word, wordList)
+    const bins = getBins(word, wordList, true)
+    const betterBins = getBins(word, wordList)
 
     // if (!_.isEqual(bins, betterBins)) {
     //   console.log('bins not equal')

@@ -43,3 +43,34 @@ export const wordsAtOrBelowLimit = (limit) => {
   }
   return binScorer
 }
+
+const evaluateKey = (
+  key,
+  weightings = {
+    G: 3,
+    Y: 2,
+    '-': 0,
+  },
+) => {
+  const result = key.split('').reduce((acc, c) => {
+    return acc + weightings[c]
+  }, 0)
+  return result
+}
+
+export const weightKeys = (
+  fullBins,
+  weightings = {
+    G: 3,
+    Y: 2,
+    '-': 0,
+  },
+) => {
+  const result = _.sum(
+    _.map(fullBins, (binItem, key) => {
+      const val = evaluateKey(key, weightings)
+      return binItem * val
+    }),
+  )
+  return result
+}

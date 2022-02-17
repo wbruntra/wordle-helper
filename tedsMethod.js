@@ -1,5 +1,5 @@
 import _ from 'lodash'
-import { getBinsV2 } from './src/utils'
+import { getBins } from './src/utils'
 import { smallBins } from './src/scorers'
 import wordList from './results/official-answers.json'
 
@@ -29,7 +29,7 @@ const meetsTest = (word) => {
 const smallBinTest = smallBins(3)
 
 let goodWords = wordList.map((word) => {
-  const bins = getBinsV2(word, wordList)
+  const bins = getBins(word, wordList)
   const score = smallBinTest(bins)
   return [word, score]
 })

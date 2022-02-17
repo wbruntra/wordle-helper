@@ -107,6 +107,7 @@ const trial = async (starting_word, { do_all_words = false, allow_reruns = false
   //   'small_bins',
   //   'most_unique',
   //   'easy_mode',
+  //   'weighted_score',
   // ]
   const start = new Date()
   const method = 'sum_roots'

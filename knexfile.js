@@ -7,7 +7,7 @@ module.exports = {
   development: {
     client: 'sqlite3',
     connection: {
-      filename: './wordle-db-official.sqlite3',
+      filename: './wordle-db-common-plus.sqlite3',
     },
     useNullAsDefault: true,
   },

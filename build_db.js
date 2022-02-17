@@ -1,28 +1,18 @@
 import _, { every } from 'lodash'
 import {
-  analysisFilter,
-  createEvaluator,
-  evaluateToString,
-  filterWords,
-  filterWordsWithAnswer,
-  getAnswersMatchingKey,
-  getBinsV2,
-  getEliminatedCount,
-  getEliminatedCountWithAnswer,
-  numToKey,
-} from './src/utils'
-import {
   countPossibleKeys,
   miniMax,
-  smallBins,
   sumLogs,
   sumRoots,
+  weightKeys,
   wordsAtOrBelowLimit,
 } from './src/scorers'
 
 import db from './db_connection'
+import { getBins } from './src/utils'
 import md5 from 'md5'
-import wordList from './results/official-answers.json'
+// import wordList from './results/official-answers.json'
+import wordList from './results/common-plus-official.json'
 
 // import wordList from './results/words-common-7.json'
 
@@ -32,7 +22,7 @@ const sleep = (ms) => {
 }
 
 const binAnalysis = (word, wordList, { binSizes }) => {
-  const bins = getBinsV2(word, wordList)
+  const bins = getBins(word, wordList)
   const totalWords = wordList.length
 
   const limits = binSizes.slice()
@@ -51,14 +41,16 @@ const binAnalysis = (word, wordList, { binSizes }) => {
 }
 
 const scoreWord = (word, wordList) => {
-  const bins = getBinsV2(word, wordList)
+  const fullBins = getBins(word, wordList, { returnObject: true })
+  const bins = Object.values(fullBins)
 
   const entry = {
-    word,
     log_score: sumLogs(bins),
     sqrt_score: sumRoots(bins),
     mini_max: miniMax(bins),
     most_keys: countPossibleKeys(bins),
+    weighted_score: weightKeys(fullBins),
+    equal_weight_score: weightKeys(fullBins, { G: 1, Y: 1, '-': 0 }),
   }
 
   return entry
@@ -86,10 +78,33 @@ const fill_bins = async () => {
   }
 }
 
+const score_words = async (wordList) => {
+  const wordlist_hash = md5(JSON.stringify(wordList))
+  const words = await db('words').select('id', 'word')
+  console.log(words.slice(0, 10))
+  const score_entries = []
+  for (const word of words) {
+    const entry = {
+      ...scoreWord(word.word, wordList),
+      word_id: word.id,
+      wordlist_hash,
+    }
+    score_entries.push(entry)
+  }
+
+  const batches = Math.ceil(score_entries.length / 400)
+  let entry_batch
+  for (let i = 0; i < batches; i++) {
+    entry_batch = score_entries.slice(i * 400, (i + 1) * 400)
+    await db('word_scores').insert(entry_batch)
+  }
+}
+
 const run = async () => {
   const start = new Date()
 
   const wordlist_hash = md5(JSON.stringify(wordList))
+
   let lastIndex
   lastIndex = 0
   const lastEntry = await getLastIndex(wordlist_hash)
@@ -122,4 +137,6 @@ const run = async () => {
 
 // run().then(() => process.exit(0))
 
-fill_bins().then(() => process.exit(0))
+// fill_bins().then(() => process.exit(0))
+
+score_words(wordList)
