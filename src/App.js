@@ -74,6 +74,7 @@ function App() {
   const [example, setExample] = useState(_.sample(examples))
   const [showExample, setShowExample] = useState(false)
   const [error, setError] = useState('')
+  const [countOnly, setCountOnly] = useState(true)
 
   const resetGuesses = () => {
     setGuesses([])
@@ -277,15 +278,6 @@ function App() {
             </div>
           </>
         )}
-        {/* <div>
-          <div className="row justify-content-center">
-            <div className="guess col-4">
-              <div className="text-start">
-                <Guess guess={{ word, key: key }} />
-              </div>
-            </div>
-          </div>
-        </div> */}
         <div className="row justify-content-center">
           <form className="mb-3 col-8 col-md-3" onSubmit={addGuess}>
             <fieldset className="mb-2">
@@ -343,12 +335,28 @@ function App() {
               </div>
             )
           })}
+          <div className="form-check mt-2 w-50 mx-auto">
+            <label className="form-check-label" htmlFor="flexCheckChecked">
+              Only Show Word Count, not suggestions
+            </label>
+            <input
+              className="form-check-input"
+              type="checkbox"
+              id="flexCheckChecked"
+              checked={countOnly}
+              onChange={() => {
+                setCountOnly(!countOnly)
+              }}
+            />
+          </div>
         </div>
         {guesses.length === 0 && (
-          <p>
-            There {filtered.length === 1 ? 'is ' : 'are'} {filtered.length} word
-            {filtered.length === 1 ? '' : 's'} left
-          </p>
+          <>
+            <p>
+              There {filtered.length === 1 ? 'is ' : 'are'} {filtered.length} word
+              {filtered.length === 1 ? '' : 's'} left
+            </p>
+          </>
         )}
 
         {guesses.length > 0 && (
@@ -381,71 +389,64 @@ function App() {
                 There {filtered.length === 1 ? 'is ' : 'are'} {filtered.length} word
                 {filtered.length === 1 ? '' : 's'} left
               </p>
-              {!showDepth && orderedWords.length > 0 && (
+              {!countOnly && (
                 <>
-                  <p>Showing best {usingOnlyFiltered ? 'among available' : 'overall'} choices</p>
+                  {!showDepth && orderedWords.length > 0 && (
+                    <>
+                      <p>
+                        Showing best {usingOnlyFiltered ? 'among available' : 'overall'} choices
+                      </p>
 
-                  <div className="row justify-content-center mb-3">
-                    <div className="col-10 col-md-6">
-                      <ReactTooltip id="solve-definition" type="dark" effect="solid">
-                        <span>
-                          SOLVE means there will be only one word <br />
-                          remaining for the next guess
-                        </span>
-                      </ReactTooltip>
+                      <div className="row justify-content-center mb-3">
+                        <div className="col-10 col-md-6">
+                          <ReactTooltip id="solve-definition" type="dark" effect="solid">
+                            <span>
+                              SOLVE means there will be only one word <br />
+                              remaining for the next guess
+                            </span>
+                          </ReactTooltip>
 
-                      <table className="table table-dark table-striped mt-3 w-100">
-                        <thead>
-                          <tr>
-                            <th scope="col">WORD</th>
-                            <th
-                              style={{
-                                textDecorationStyle: 'dotted',
-                                textDecorationLine: 'underline',
-                                textUnderlineOffset: '4px',
-                              }}
-                              data-tip
-                              data-for="solve-definition"
-                              scope="col"
-                            >
-                              CHANCE TO SOLVE
-                            </th>
-                            {/* <th
-                              className="selectable"
-                              onClick={() =>
-                                applyFilters({
-                                  only_use_filtered: usingOnlyFiltered,
-                                  order_by_weight: true,
-                                })
-                              }
-                              scope="col"
-                            >
-                              WEIGHTED SCORE
-                            </th> */}
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {orderedWords.slice(0, 10).map((word, i) => {
-                            return (
-                              <tr key={`ordered-${i}`}>
-                                <td>{word.word}</td>
-                                <td>{((100 * word.score) / filtered.length).toFixed(1)}%</td>
-                                {/* <td>{(100 * word.weightedScore).toFixed(1)}</td> */}
+                          <table className="table table-dark table-striped mt-3 w-100">
+                            <thead>
+                              <tr>
+                                <th scope="col">WORD</th>
+                                <th
+                                  style={{
+                                    textDecorationStyle: 'dotted',
+                                    textDecorationLine: 'underline',
+                                    textUnderlineOffset: '4px',
+                                  }}
+                                  data-tip
+                                  data-for="solve-definition"
+                                  scope="col"
+                                >
+                                  CHANCE TO SOLVE
+                                </th>
                               </tr>
-                            )
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
+                            </thead>
+                            <tbody>
+                              {orderedWords.slice(0, 10).map((word, i) => {
+                                return (
+                                  <tr key={`ordered-${i}`}>
+                                    <td>{word.word}</td>
+                                    <td>{((100 * word.score) / filtered.length).toFixed(1)}%</td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                  <hr style={{ color: 'white' }} />
                 </>
               )}
-              <hr style={{ color: 'white' }} />
             </div>
           </>
         )}
 
-        {guesses.length > 0 && (
+        {guesses.length > 0 && !countOnly && (
           <div className="container">
             {showDepth ? (
               <p className="selectable" onClick={() => setShowDepth(false)}>

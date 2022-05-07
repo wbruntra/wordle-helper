@@ -1,5 +1,6 @@
 import {
   analysisFilter,
+  evaluateToString,
   getBestChoice,
   getBestHitFromFullList,
   getBins,
@@ -49,28 +50,39 @@ const play = async () => {
   const questions = [
     {
       name: 'key',
-      message: 'Wordle response?',
+      message: 'Wordle response',
     },
   ]
   if (!nextWord) {
     questions.unshift({
       name: 'answer',
-      message: `Answer?`,
+      message: `Correct answer?`,
     })
   }
 
   const answers = await inquirer.prompt(questions)
 
+  console.log(answers)
+
   const answer = answers.answer.toLocaleUpperCase()
   const inputKey = getCanonicalKey(answers.key)
 
-  const bins = getBins(answer, filtered, { returnObject: true, showMatches: true })
+  const matches = filtered
+    .map((w) => {
+      if (evaluateToString(w, answer) == inputKey) {
+        return w
+      }
+    })
+    .filter((w) => w)
+  console.log(matches)
 
-  const bin = _.find(bins, (val, key) => {
-    return key === inputKey
-  })
-  
-  console.log(bin)
+  // const bins = getBins(answer, filtered, { returnObject: true, showMatches: true })
+
+  // const bin = _.find(bins, (val, key) => {
+  //   return key === inputKey
+  // })
+
+  // console.log(bin)
 
   // filtered = analysisFilter({ word: answer, key }, filtered)
 }

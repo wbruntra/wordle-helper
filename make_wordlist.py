@@ -6,7 +6,7 @@ import glob
 from collections import Counter
 
 
-def get_book_unique_words(filename, official_words):
+def get_book_unique_words(filename, official_words = None):
     with open(filename) as f:
         txt = f.read()
     txt = txt.replace("\n", " ")
@@ -16,7 +16,9 @@ def get_book_unique_words(filename, official_words):
     words = txt.split(" ")
     unique_words = set(words)
     unique_words = set([w.upper() for w in words])
-    unique_words = set(official_words).intersection(unique_words)
+    if official_words:
+        print('Limiting words')
+        unique_words = set(official_words).intersection(unique_words)
     return unique_words
 
 
@@ -147,6 +149,21 @@ def use_counter():
 
     return word_usage
 
+def get_common_words():
+    filenames = glob.glob("./books/*.txt")
+
+    result = set()
+
+    for book in filenames:
+        new_words = get_book_unique_words(book)
+        result = result.union(new_words)
+
+    word_usage = use_counter()
+
+    with codecs.open('./results/most_common.json', 'w', 'utf-8') as f:
+        com = list(word_usage.most_common(1000))
+        f.write(json.dumps(com))
+
 
 def make_wordlist_with_common(min_books_required):
     result = set()
@@ -158,10 +175,10 @@ def make_wordlist_with_common(min_books_required):
 
     result = sorted(result)
 
-    # with codecs.open(
-    #     f"./results/words-common-{min_books_required}.json", "w", "utf-8"
-    # ) as f:
-    #     f.write(json.dumps(sorted(list(result)), indent=2, ensure_ascii=False))
+    with codecs.open(
+        f"./results/words-common-{min_books_required}.json", "w", "utf-8"
+    ) as f:
+        f.write(json.dumps(sorted(list(result)), indent=2, ensure_ascii=False))
 
     return sorted(result)
 
@@ -189,7 +206,8 @@ if __name__ == "__main__":
     # modified_words = get_modified_words()
     # run_official()
     # use_counter()
-    common_wordlist = make_wordlist_with_common(4)
-    get_answer_coverage(common_wordlist)
+    # common_wordlist = make_wordlist_with_common(5)
+    # get_answer_coverage(common_wordlist)
+    get_common_words()
 
 # print(modified_words)

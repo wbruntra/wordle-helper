@@ -39,7 +39,7 @@ const orderEntireWordList = (filteredList, startingList, { only_filtered = false
   return results
 }
 
-const play = async () => {
+const play = async ({ wordCountOnly = false }) => {
   let c = true
   let filtered = wordList.slice()
   let suggestion
@@ -68,7 +68,7 @@ const play = async () => {
 
     filtered = analysisFilter({ word: guess, key }, filtered)
 
-    if (filtered.length === 1) {
+    if (filtered.length === 1 && !wordCountOnly) {
       console.log(`The word is definitely ${filtered[0]}`)
       c = false
       return
@@ -80,36 +80,45 @@ const play = async () => {
 
     const fullyBest = getBestHitFromFullList(filtered, wordList, { verbose: false, limit: 1 })
     const best = await getBestChoice(filtered, wordList, { scoring_method: 'most_in_bins' })
-    console.log(
-      `Best choice from list: ${best.word}, with a ${(
-        (100 * best.score) /
-        filtered.length
-      ).toFixed(1)}% chance of solving`,
-    )
-    console.log(
-      `Best overall choice (${((100 * fullyBest.score) / filtered.length).toFixed(
-        1,
-      )}% chance of solving): ${fullyBest.word}`,
-    )
+    if (!wordCountOnly) {
+      console.log(
+        `Best choice from list: ${best.word}, with a ${(
+          (100 * best.score) /
+          filtered.length
+        ).toFixed(1)}% chance of solving`,
+      )
+      console.log(
+        `Best overall choice (${((100 * fullyBest.score) / filtered.length).toFixed(
+          1,
+        )}% chance of solving): ${fullyBest.word}`,
+      )
+    }
     suggestion = best.word
 
-    const nextGuess = await inquirer.prompt([
-      {
-        type: 'rawlist',
-        name: 'word',
-        message: 'Which is your next word?',
-        choices: [best.word, ...ordered.slice(0, 3).map((o) => o.word), 'other'],
-        default: 0,
-      },
-    ])
+    let nextGuess = {
+      word: 'other',
+    }
 
-    if (nextGuess.word === 'other') {
+    if (!wordCountOnly) {
+      nextGuess = await inquirer.prompt([
+        {
+          type: 'rawlist',
+          name: 'word',
+          message: 'Which is your next word?',
+          choices: [best.word, ...ordered.slice(0, 3).map((o) => o.word), 'other'],
+          default: 0,
+        },
+      ])
+    }
+
+    if (wordCountOnly || nextGuess.word === 'other') {
       const guessedWord = await inquirer.prompt([
         {
-          name: 'guess',
+          name: 'word',
           message: `Guessed word?`,
         },
       ])
+      console.log(guessedWord)
       nextWord = guessedWord.word
     } else {
       nextWord = nextGuess.word
@@ -119,4 +128,9 @@ const play = async () => {
   }
 }
 
-play().then(() => process.exit(0))
+const wordCountOnly = _.get(process, ['argv', 2]) === 'wc'
+if (wordCountOnly) {
+  console.log('only showing word count')
+}
+
+play({ wordCountOnly }).then(() => process.exit(0))
