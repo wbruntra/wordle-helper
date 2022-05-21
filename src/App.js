@@ -1,5 +1,5 @@
-import { analysisFilter, getBins, getCanonical, getCanonicalKey } from './utils'
-import { useRef, useState } from 'react'
+import { filterWordsUsingGuessResult, getBins, getCanonical, getCanonicalKey } from './utils'
+import { useRef, useState, useEffect } from 'react'
 import { weightKeys, wordsAtOrBelowLimit } from './scorers'
 
 import Guess from './Guess'
@@ -23,7 +23,7 @@ const getWeightedScores = (filteredList) => {
 }
 
 const orderEntireWordList = (filteredList, { only_filtered = false, orderByWeight = false }) => {
-  const unique_scorer = wordsAtOrBelowLimit(1)
+  const maximizeUniqueness = wordsAtOrBelowLimit(1)
   if (filteredList.length === startingList.length) {
     return []
   }
@@ -34,7 +34,7 @@ const orderEntireWordList = (filteredList, { only_filtered = false, orderByWeigh
     const bins = Object.values(fullBins)
     return {
       word,
-      score: unique_scorer(bins),
+      score: maximizeUniqueness(bins),
       weightedScore: weightKeys(fullBins) / (filteredList.length * 15),
     }
   })
@@ -46,7 +46,7 @@ const orderEntireWordList = (filteredList, { only_filtered = false, orderByWeigh
       const bins = Object.values(fullBins)
       return {
         word,
-        score: unique_scorer(bins),
+        score: maximizeUniqueness(bins),
         weightedScore: weightKeys(fullBins) / (filteredList.length * 15),
       }
     })
@@ -64,7 +64,7 @@ function App() {
   const [guesses, setGuesses] = useState([])
   const [word, setWord] = useState('')
   const [key, setKey] = useState('')
-  const [filtered, setFiltered] = useState(startingList.slice())
+  const [currentFilteredList, setFiltered] = useState(startingList.slice())
   const inputEl = useRef(null)
   const [showDepth, setShowDepth] = useState(false)
   const [bins, setBins] = useState([])
@@ -74,7 +74,7 @@ function App() {
   const [example, setExample] = useState(_.sample(examples))
   const [showExample, setShowExample] = useState(false)
   const [error, setError] = useState('')
-  const [countOnly, setCountOnly] = useState(true)
+  const [countOnly, setCountOnly] = useState(false)
 
   const resetGuesses = () => {
     setGuesses([])
@@ -108,16 +108,6 @@ function App() {
     setKey('')
     setTouched(true)
 
-    let localFiltered = applyGuesses(startingList, newGuesses)
-    setFiltered(localFiltered)
-    setUsingOnlyFiltered(true)
-
-    if (localFiltered.length < 450) {
-      const newWordOrder = orderEntireWordList(localFiltered, { only_filtered: true })
-      setOrderedWords(newWordOrder)
-    }
-
-    // inputEl.current.focus()
     document.activeElement.blur()
   }
 
@@ -127,13 +117,13 @@ function App() {
       if (guess.word === word) {
         break
       }
-      localFiltered = analysisFilter(guess, localFiltered)
+      localFiltered = filterWordsUsingGuessResult(guess, localFiltered)
     }
 
     let newBins = getBins(word, localFiltered, { returnObject: true, showMatches: true })
     newBins = _.map(newBins, (value, key) => ({ [key]: value }))
     newBins = _.sortBy(newBins, (value, key) => Object.values(value)[0].length)
-    setBinsWord(`${word} (${localFiltered.length} words)`)
+    setBinsWord(`${word} (sorting ${localFiltered.length} words)`)
     setBins(newBins)
   }
 
@@ -141,10 +131,27 @@ function App() {
     setBins([])
   }
 
-  const applyGuesses = (wordList, guesses) => {
+  useEffect(() => {
+    let localFiltered
+    // if ((guesses.length = 0)) return
+    localFiltered = applyGuesses(startingList, guesses)
+    setFiltered(localFiltered)
+    // setUsingOnlyFiltered(true)
+    if (localFiltered.length === 0) {
+      setError('Something went wrong. Maybe you put in the wrong evaluation?')
+      return
+    }
+
+    if (localFiltered.length < 450) {
+      const newWordOrder = orderEntireWordList(localFiltered, { only_filtered: usingOnlyFiltered })
+      setOrderedWords(newWordOrder)
+    }
+  }, [guesses, usingOnlyFiltered])
+
+  const applyGuesses = (wordList, guesses, usingOnlyFiltered = true) => {
     let filteredWords = wordList.slice()
     for (const guess of guesses) {
-      filteredWords = analysisFilter(guess, filteredWords)
+      filteredWords = filterWordsUsingGuessResult(guess, filteredWords)
     }
 
     return filteredWords
@@ -335,67 +342,70 @@ function App() {
               </div>
             )
           })}
-          <div className="form-check mt-2 w-50 mx-auto">
-            <label className="form-check-label" htmlFor="flexCheckChecked">
-              Only Show Word Count, not suggestions
-            </label>
-            <input
-              className="form-check-input"
-              type="checkbox"
-              id="flexCheckChecked"
-              checked={countOnly}
-              onChange={() => {
-                setCountOnly(!countOnly)
-              }}
-            />
-          </div>
         </div>
         {guesses.length === 0 && (
           <>
             <p>
-              There {filtered.length === 1 ? 'is ' : 'are'} {filtered.length} word
-              {filtered.length === 1 ? '' : 's'} left
+              There {currentFilteredList.length === 1 ? 'is ' : 'are'} {currentFilteredList.length}{' '}
+              word
+              {currentFilteredList.length === 1 ? '' : 's'} left
             </p>
           </>
         )}
-
+        <hr style={{ color: 'white' }} />
+        <div className="form-check mb-4 w-50 mx-auto">
+          <div
+            onClick={() => {
+              setCountOnly(!countOnly)
+            }}
+            className="form-check-label selectable"
+          >
+            {countOnly ? 'Show Suggestions' : 'Show Word Count Only (Hide Suggestions)'}
+          </div>
+        </div>
         {guesses.length > 0 && (
           <>
             <div>
-              <hr style={{ color: 'white' }} />
-
               <p>
-                {usingOnlyFiltered ? (
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => applyFilters({ only_use_filtered: false })}
-                  >
-                    Use Full Wordlist
-                  </button>
-                ) : (
-                  <button
-                    className="btn btn-primary btn-sm"
-                    onClick={() => applyFilters({ only_use_filtered: true })}
-                  >
-                    Use Only Valid Words
-                  </button>
-                )}
                 <button className="btn btn-primary btn-sm ms-3" onClick={resetGuesses}>
                   Clear Guesses
                 </button>
               </p>
 
               <p>
-                There {filtered.length === 1 ? 'is ' : 'are'} {filtered.length} word
-                {filtered.length === 1 ? '' : 's'} left
+                There {currentFilteredList.length === 1 ? 'is ' : 'are'}{' '}
+                {currentFilteredList.length} word
+                {currentFilteredList.length === 1 ? '' : 's'} left
               </p>
               {!countOnly && (
                 <>
                   {!showDepth && orderedWords.length > 0 && (
                     <>
                       <p>
-                        Showing best {usingOnlyFiltered ? 'among available' : 'overall'} choices
+                        Showing best{' '}
+                        {usingOnlyFiltered ? 'among available' : 'overall (including eliminated)'}{' '}
+                        choices
                       </p>
+                      <div className="mb-2">
+                        {usingOnlyFiltered ? (
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => setUsingOnlyFiltered(false)}
+
+                            // onClick={() => applyFilters({ only_use_filtered: false })}
+                          >
+                            Use Full Wordlist
+                          </button>
+                        ) : (
+                          <button
+                            className="btn btn-primary btn-sm"
+                            onClick={() => setUsingOnlyFiltered(true)}
+                            // onClick={() => applyFilters({ only_use_filtered: true })}
+                          >
+                            Use Only Valid Words
+                          </button>
+                        )}
+                      </div>
 
                       <div className="row justify-content-center mb-3">
                         <div className="col-10 col-md-6">
@@ -420,7 +430,7 @@ function App() {
                                   data-for="solve-definition"
                                   scope="col"
                                 >
-                                  CHANCE TO SOLVE
+                                  CHANCE OF SOLVING
                                 </th>
                               </tr>
                             </thead>
@@ -429,7 +439,12 @@ function App() {
                                 return (
                                   <tr key={`ordered-${i}`}>
                                     <td>{word.word}</td>
-                                    <td>{((100 * word.score) / filtered.length).toFixed(1)}%</td>
+                                    <td>
+                                      {((100 * word.score) / currentFilteredList.length).toFixed(
+                                        1,
+                                      )}
+                                      %
+                                    </td>
                                   </tr>
                                 )
                               })}

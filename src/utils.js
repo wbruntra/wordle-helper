@@ -107,7 +107,7 @@ export const evaluate = (guess, answer) => {
 }
 
 /**
- * Get correct letters in guess
+ * Get correct (GREEN) letters in guess
  * @param {Object} guess
  * @param {string} guess.word - The guessed word
  * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
@@ -123,7 +123,7 @@ const getCorrect = (guess) => {
 }
 
 /**
- * Get letters present but not correct from word
+ * Get letters present but not correct (YELLOW) from word
  * @param {Object} guess
  * @param {string} guess.word - The guessed word
  * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
@@ -139,7 +139,7 @@ const getPresent = (guess) => {
 }
 
 /**
- * Get letters absent from word
+ * Get letters absent (BLACK) from word
  * @param {Object} guess
  * @param {string} guess.word - The guessed word
  * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
@@ -262,6 +262,7 @@ const replaceAtIndex = (str, idx, replacement = '-') => {
 }
 
 /**
+ * Return evaluation key (e.g. `YG..Y`) for given `guess` and `answer`
  * @param {string} guess - Guessed word
  * @param {string} answer - Correct answer
  */
@@ -289,12 +290,21 @@ export const evaluateToString = (guess, answer) => {
   return result.join('')
 }
 
+/**
+ * Given the correct `answer`, return an evaluator function
+ * which takes `guess` and returns the appropriate key
+ * @param {string} answer
+ */
 export const createEvaluator = (answer) => {
+  /**
+   * @param {string} guess
+   */
   const evaluator = (guess) => {
     const key = Array(guess.length).fill(null)
     const answerArray = getCanonical(answer).split('')
     const guessArray = getCanonical(guess).split('')
 
+    // First pass: only get correct (GREEN) letters
     for (let i = 0; i < guessArray.length; i++) {
       if (guessArray[i] === answerArray[i]) {
         key[i] = 'G'
@@ -302,6 +312,7 @@ export const createEvaluator = (answer) => {
       }
     }
 
+    // Second pass: distinguish YELLOW from BLACK letters
     for (let i = 0; i < guessArray.length; i++) {
       if (key[i] === 'G') {
         continue
@@ -326,12 +337,14 @@ export const compareEvaluations = (answer, guess1, guess2) => {
 }
 
 /**
+ * After making a guess, given the guessed word and the received evaluation for that word, filter `wordList` for words
+ * matching that evaluation
  * @param {Object} guess
  * @param {string} guess.word - The guessed word
  * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
  * @param {string[]} wordList
  */
-export const analysisFilter = (guess, wordList) => {
+export const filterWordsUsingGuessResult = (guess, wordList) => {
   const result = wordList.filter((potentialAnswer) => {
     const evaluator = createEvaluator(potentialAnswer)
     const potentialKey = evaluator(guess.word)
@@ -379,7 +392,18 @@ export const getPossibleKeys = (word, wordList) => {
 }
 
 /**
- * Get number of matches in `wordList` for `word` using all possible keys
+ * Create an Object where the keys will be all possible answer keys (e.g. `YY..G`) 
+ * produced using `word` and `wordList`, and values will be either the count of words
+ * in wordlist producing the corresponding key or the array of words from `wordList`
+ * producing that key.
+ * 
+ * This is useful for understanding how well a given `word` can be expected to
+ * divide a `wordList` into distinct "bins", i.e. how many possible words we expect to have left
+ * after making a guess.
+ * 
+ * Function can either return the Object or a sorted array of the word counts corresponding to the
+ * possible keys. A perfect sorter would produce an array consisting of all `1`'s, the worst possible
+ * sorter would simply contain one number, `[wordList.length]`
  * @param {string} word
  * @param {string[]} wordList
  */
@@ -584,7 +608,7 @@ export const reclassifyAllForAnswer = (answer, wordList, { stop_after_one = fals
       continue
     }
     const key = evaluateToString(word, answer)
-    const filtered = analysisFilter(
+    const filtered = filterWordsUsingGuessResult(
       {
         word,
         key,

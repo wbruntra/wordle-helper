@@ -1,6 +1,6 @@
 import _, { every } from 'lodash'
 import {
-  analysisFilter,
+  filterWordsUsingGuessResult,
   createEvaluator,
   evaluateToString,
   getAnswersMatchingKey,
@@ -134,8 +134,8 @@ const solver = (answer) => {
       return guesses
     }
     stringEval = evaluateToString(guess, answer)
-    filtered = analysisFilter({ word: guess, key: stringEval }, filtered)
-    // filtered = analysisFilter({ word: guess, key: stringEval}, filtered)
+    filtered = filterWordsUsingGuessResult({ word: guess, key: stringEval }, filtered)
+    // filtered = filterWordsUsingGuessResult({ word: guess, key: stringEval}, filtered)
     guesses.push(getGuess(filtered))
 
     // IF THERE IS A BUG do not run forever

@@ -1,4 +1,4 @@
-import { analysisFilter, createEvaluator, getBestChoice } from './src/utils'
+import { filterWordsUsingGuessResult, createEvaluator, getBestChoice } from './src/utils'
 
 import _ from 'lodash'
 import db from './db_connection'
@@ -67,7 +67,7 @@ export const play = async (
     guess = guesses.slice(-1)[0]
     key = createEvaluator(answer)(guess)
 
-    filtered = analysisFilter({ word: guess, key }, filtered)
+    filtered = filterWordsUsingGuessResult({ word: guess, key }, filtered)
     best = await getBestChoice(filtered, fullWordList, {
       scoring_method: method,
       easy_mode_bin_limit: binLimit,

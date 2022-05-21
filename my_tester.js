@@ -1,5 +1,5 @@
 import {
-  analysisFilter,
+  filterWordsUsingGuessResult,
   evaluateToString,
   isGuessableInOne,
   reclassifyAllForAnswer,
@@ -14,7 +14,7 @@ let answers = wordList.slice(200, 230)
 const doubleCheck = (word, answer) => {
   // console.log(word, answer)
   const key = evaluateToString(word, answer)
-  const filtered = analysisFilter(
+  const filtered = filterWordsUsingGuessResult(
     {
       word,
       key,

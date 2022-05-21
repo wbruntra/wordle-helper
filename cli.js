@@ -1,5 +1,5 @@
 import {
-  analysisFilter,
+  filterWordsUsingGuessResult,
   getBestChoice,
   getBestHitFromFullList,
   getBins,
@@ -66,7 +66,7 @@ const play = async ({ wordCountOnly = false }) => {
     const guess = nextWord ? nextWord.toLocaleUpperCase() : answers.guess.toLocaleUpperCase()
     const key = getCanonicalKey(answers.key)
 
-    filtered = analysisFilter({ word: guess, key }, filtered)
+    filtered = filterWordsUsingGuessResult({ word: guess, key }, filtered)
 
     if (filtered.length === 1 && !wordCountOnly) {
       console.log(`The word is definitely ${filtered[0]}`)

@@ -1,6 +1,6 @@
 import _, { every } from 'lodash'
 import {
-  analysisFilter,
+  filterWordsUsingGuessResult,
   createEvaluator,
   evaluateToString,
   getAllKeys,
@@ -22,7 +22,7 @@ const playTest = async (starting_word) => {
   while (guesses.slice(-1)[0] !== answer) {
     guess = guesses.slice(-1)[0]
     key = createEvaluator(answer)(guess)
-    filtered = analysisFilter({ word: guess, key }, filtered)
+    filtered = filterWordsUsingGuessResult({ word: guess, key }, filtered)
 
     console.log(filtered)
     for (const word of filtered) {

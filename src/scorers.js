@@ -36,6 +36,14 @@ export const smallBins = (maxBinSize) => {
   return binScorer
 }
 
+/**
+ * After making a guess, given the guessed word and the received evaluation for that word, filter `wordList` for words
+ * matching that evaluation
+ * @param {Object} guess
+ * @param {number} limit - 
+ * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
+ * @param {string[]} wordList
+ */
 export const wordsAtOrBelowLimit = (limit) => {
   const binScorer = (bins) => {
     const small = bins.filter((size) => size <= limit)
@@ -58,6 +66,14 @@ const evaluateKey = (
   return result
 }
 
+/**
+ * Scoring method whereby evaluations are assigned a value according to the number of "GY-" values
+ * they are expected to produce
+ * @param {Object} fullBins - Bins produced by `getBins` function
+ * @param {Object} weightings 
+ * @param {number} weightings.G 
+ * @param {number} weightings.Y 
+ */
 export const weightKeys = (
   fullBins,
   weightings = {

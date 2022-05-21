@@ -1,5 +1,5 @@
 import {
-  analysisFilter,
+  filterWordsUsingGuessResult,
   evaluateToString,
   getBestChoice,
   getBestHitFromFullList,
@@ -84,7 +84,7 @@ const play = async () => {
 
   // console.log(bin)
 
-  // filtered = analysisFilter({ word: answer, key }, filtered)
+  // filtered = filterWordsUsingGuessResult({ word: answer, key }, filtered)
 }
 
 play().then(() => process.exit(0))
