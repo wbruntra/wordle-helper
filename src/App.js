@@ -74,7 +74,7 @@ function App() {
   const [example, setExample] = useState(_.sample(examples))
   const [showExample, setShowExample] = useState(false)
   const [error, setError] = useState('')
-  const [countOnly, setCountOnly] = useState(false)
+  const [countOnly, setCountOnly] = useState(true)
 
   const resetGuesses = () => {
     setGuesses([])
@@ -360,7 +360,7 @@ function App() {
             }}
             className="form-check-label selectable"
           >
-            {countOnly ? 'Show Suggestions' : 'Show Word Count Only (Hide Suggestions)'}
+            {countOnly ? 'Show Suggestions' : 'Show Word Count Only'}
           </div>
         </div>
         {guesses.length > 0 && (

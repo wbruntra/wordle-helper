@@ -42,7 +42,7 @@ export const getCanonicalKey = (key) => {
 /**
  * Get all words that produce given key from guess
  * @param {string} guess - The guessed word
- * @param {string} key - The guessed word
+ * @param {string} key - The returned key
  * @param {string[]} wordList
  */
 export const getAnswersMatchingKey = (guess, key, wordList) => {
@@ -107,161 +107,6 @@ export const evaluate = (guess, answer) => {
 }
 
 /**
- * Get correct (GREEN) letters in guess
- * @param {Object} guess
- * @param {string} guess.word - The guessed word
- * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
- */
-const getCorrect = (guess) => {
-  const { key, word } = guess
-  return key.split('').map((k, i) => {
-    if (k === 'G') {
-      return word[i]
-    }
-    return false
-  })
-}
-
-/**
- * Get letters present but not correct (YELLOW) from word
- * @param {Object} guess
- * @param {string} guess.word - The guessed word
- * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
- */
-const getPresent = (guess) => {
-  const { key, word } = guess
-  return key.split('').map((k, i) => {
-    if (k === 'Y') {
-      return word[i]
-    }
-    return false
-  })
-}
-
-/**
- * Get letters absent (BLACK) from word
- * @param {Object} guess
- * @param {string} guess.word - The guessed word
- * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
- */
-const getAbsent = (guess) => {
-  const { key, word } = guess
-  return key.split('').map((k, i) => {
-    if (!'YG'.includes(k)) {
-      return word[i]
-    }
-    return false
-  })
-}
-
-/**
- * Test whether word matches guess criteria
- * @param {string} word - The word being evaluated for current `guess`
- * @param {Object} guess
- * @param {string} guess.word - The guessed word
- * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
- */
-const testWord = (word, guess) => {
-  let i
-  let remains = getCanonical(word)
-
-  const correct = getCorrect(guess)
-  for (i = 0; i < correct.length; i++) {
-    if (correct[i] && correct[i] !== remains[i]) {
-      return false
-    } else {
-      if (correct[i]) {
-        remains = replaceAtIndex(remains, i)
-      }
-    }
-  }
-
-  const present = getPresent(guess)
-  for (i = 0; i < present.length; i++) {
-    if (present[i] && (!remains.includes(present[i]) || remains[i] === present[i])) {
-      return false
-    } else {
-      if (present[i]) {
-        remains = remains.replace(present[i], '-')
-      }
-    }
-  }
-
-  const absent = getAbsent(guess)
-
-  for (i = 0; i < absent.length; i++) {
-    if (remains.includes(absent[i])) {
-      return false
-    }
-  }
-  return true
-}
-
-/**
- * Filter list of valid words using `answer`
- * @param {string} key - The returned evaluation for the word, e.g. `..YYG`
- * @param {string} answer - The correct answer
- * @param {string[]} words - List of possible words producing `key` from `answer`
- */
-export const filterWordsWithAnswer = (key, answer, words) => {
-  const filtered = words.filter((word) => {
-    const wordKey = evaluateToString(word, answer)
-    return key === wordKey
-  })
-  return filtered
-}
-
-export const getEliminatedCountWithAnswer = (key, answer, words) => {
-  const originalLength = words.length
-  const filtered = filterWordsWithAnswer(key, answer, words)
-  return originalLength - filtered.length
-}
-
-/**
- * Determine whether `word` is valid, given `guess`.
- * @param {string} word - The word being evaluated for current `guess`
- * @param {Object} guess
- * @param {string} guess.word - The guessed word
- * @param {string} guess.key - The returned evaluation for the word, e.g. `..YYG`
- */
-export const isWordValid = (word, guess) => {
-  let wordCopy = getCanonical(word)
-  let guessWordCopy = getCanonical(guess.word)
-
-  for (let i = 0; i < guessWordCopy.length; i++) {
-    if (guess.key[i] === 'G') {
-      if (wordCopy[i] !== guessWordCopy[i]) {
-        return false
-      } else {
-        wordCopy = wordCopy.slice(0, i) + '-' + wordCopy.slice(i + 1)
-      }
-    } else if (guess.key[i] === 'Y') {
-      if (!wordCopy.includes(guessWordCopy[i])) {
-        return false
-      } else {
-        wordCopy = wordCopy.replace(guessWordCopy[i], '-')
-      }
-    } else {
-      if (wordCopy.includes(guessWordCopy[i])) {
-        return false
-      }
-    }
-  }
-  return true
-}
-
-/**
- * @param {string} str
- * @param {number} idx
- * @param {string} replacement
- */
-const replaceAtIndex = (str, idx, replacement = '-') => {
-  let newString = str.split('')
-  newString[idx] = replacement
-  return newString.join('')
-}
-
-/**
  * Return evaluation key (e.g. `YG..Y`) for given `guess` and `answer`
  * @param {string} guess - Guessed word
  * @param {string} answer - Correct answer
@@ -269,25 +114,9 @@ const replaceAtIndex = (str, idx, replacement = '-') => {
 export const evaluateToString = (guess, answer) => {
   let remainingAnswer = getCanonical(answer)
   let canonicalGuess = getCanonical(guess)
-  const result = []
-  for (let i = 0; i < canonicalGuess.length; i++) {
-    if (canonicalGuess[i] === remainingAnswer[i]) {
-      result[i] = 'G'
-      remainingAnswer = replaceAtIndex(remainingAnswer, i)
-    }
-  }
-  for (let i = 0; i < canonicalGuess.length; i++) {
-    if (result[i]) {
-      continue
-    }
-    if (remainingAnswer.includes(canonicalGuess[i])) {
-      result[i] = 'Y'
-      remainingAnswer = remainingAnswer.replace(canonicalGuess[i], '-')
-    } else {
-      result[i] = '-'
-    }
-  }
-  return result.join('')
+
+  const evaluator = createEvaluator(remainingAnswer)
+  return evaluator(canonicalGuess)
 }
 
 /**
@@ -380,7 +209,7 @@ export const getAllKeys = () => {
 }
 
 /**
- * Get number of matches in `wordList` for `word` using all possible keys
+ * Get all possible evaluations (keys) from comparing `word` against `wordList`
  * @param {string} word
  * @param {string[]} wordList
  */
