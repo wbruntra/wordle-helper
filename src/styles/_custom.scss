@@ -35,7 +35,6 @@ input {
   margin-top: 8px;
 }
 
-
 .green {
   background-color: #6faf62;
 }
@@ -61,13 +60,16 @@ input {
 }
 
 .btn {
-  background-color: #9b4dca;
-  border: 0.1rem solid #9b4dca;
   border-radius: 0.4rem;
   text-align: center;
   text-decoration: none;
   text-transform: uppercase;
   white-space: nowrap;
   font-family: 'Open Sans', sans-serif;
-  font-size: .9rem;
+  font-size: 0.9rem;
+}
+
+.btn-primary {
+  background-color: #9b4dca;
+  border: 0.1rem solid #9b4dca;
 }

@@ -353,30 +353,27 @@ function App() {
           </>
         )}
         <hr style={{ color: 'white' }} />
-        <div className="form-check mb-4 w-50 mx-auto">
-          <div
-            onClick={() => {
-              setCountOnly(!countOnly)
-            }}
-            className="form-check-label selectable"
-          >
-            {countOnly ? 'Show Suggestions' : 'Show Word Count Only'}
-          </div>
-        </div>
         {guesses.length > 0 && (
           <>
             <div>
-              <p>
-                <button className="btn btn-primary btn-sm ms-3" onClick={resetGuesses}>
-                  Clear Guesses
-                </button>
-              </p>
+              <button className="btn btn-primary btn-sm mb-3" onClick={resetGuesses}>
+                Clear Guesses
+              </button>
 
               <p>
                 There {currentFilteredList.length === 1 ? 'is ' : 'are'}{' '}
                 {currentFilteredList.length} word
                 {currentFilteredList.length === 1 ? '' : 's'} left
               </p>
+
+              <button
+                onClick={() => {
+                  setCountOnly(!countOnly)
+                }}
+                className="btn btn-dark mb-3"
+              >
+                {countOnly ? 'Show Suggestions' : 'Show Word Count Only'}
+              </button>
               {!countOnly && (
                 <>
                   {!showDepth && orderedWords.length > 0 && (
@@ -462,21 +459,21 @@ function App() {
         )}
 
         {guesses.length > 0 && !countOnly && (
-          <div className="container">
+          <div className="container mb-3">
             {showDepth ? (
-              <p className="selectable" onClick={() => setShowDepth(false)}>
+              <button className="btn btn-dark" onClick={() => setShowDepth(false)}>
                 Hide Analysis
-              </p>
+              </button>
             ) : (
-              <p className="selectable" onClick={() => setShowDepth(true)}>
+              <button className="btn btn-dark" onClick={() => setShowDepth(true)}>
                 Show Analysis for Last Guess
-              </p>
+              </button>
             )}
             {showDepth && (
-              <>
+              <div className='mt-3'>
                 <h2>{binsWord}</h2>
                 {renderBins(bins)}
-              </>
+              </div>
             )}
           </div>
         )}
