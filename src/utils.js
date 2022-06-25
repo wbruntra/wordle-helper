@@ -221,15 +221,16 @@ export const getPossibleKeys = (word, wordList) => {
 }
 
 /**
- * Create an Object where the keys will be all possible answer keys (e.g. `YY..G`) 
- * produced using `word` and `wordList`, and values will be either the count of words
+ * Create an Object where the keys will be all possible answer keys (e.g. `YY..G`)
+ * produced using `word` (potential guess) and `wordList` (all possible remaining answers),
+ * and values will be either the count of words
  * in wordlist producing the corresponding key or the array of words from `wordList`
  * producing that key.
- * 
+ *
  * This is useful for understanding how well a given `word` can be expected to
  * divide a `wordList` into distinct "bins", i.e. how many possible words we expect to have left
  * after making a guess.
- * 
+ *
  * Function can either return the Object or a sorted array of the word counts corresponding to the
  * possible keys. A perfect sorter would produce an array consisting of all `1`'s, the worst possible
  * sorter would simply contain one number, `[wordList.length]`
@@ -470,4 +471,31 @@ export const isGuessableInOne = (answer, wordList) => {
   let result = classifiedKeys.filter((r) => r.filtered.length === 1)
   console.log(answer, result[0])
   return result.length > 0
+}
+
+export const applyGuesses = (wordList, guesses) => {
+  let filteredWords = wordList.slice()
+  for (const guess of guesses) {
+    filteredWords = filterWordsUsingGuessResult(guess, filteredWords)
+  }
+
+  return filteredWords
+}
+
+export function decompress(text) {
+  let lastword = 'zzzzz'
+  let words = []
+  let i = 0
+  let j = 0
+  let word
+  while (j <= text.length) {
+    if ((text.charCodeAt(j) < 96 || j == text.length) && j > i) {
+      word = (lastword.slice(0, 5 - (j - i)) + text.slice(i, j)).toLowerCase()
+      words.push(word)
+      lastword = word
+      i = j
+    }
+    j++
+  }
+  return words.map(w => w.toUpperCase())
 }
