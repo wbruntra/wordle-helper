@@ -20,7 +20,6 @@ function WordListModal({ show, handleClose, wordList, setWordList }) {
         <select
           value={wordList}
           onChange={(e) => {
-            console.log(e.target.value)
             setWordList(e.target.value)
           }}
         >

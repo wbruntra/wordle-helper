@@ -61,12 +61,7 @@ function App() {
   const params = new URLSearchParams(window.location.search)
 
   useEffect(() => {
-    console.log('changing to', wordListName)
     let newFilteredList = wordLists[wordListName].slice()
-    console.log(newFilteredList.length)
-    // if (guesses.length > 0) {
-    //   newFilteredList = applyGuesses(guesses, newFilteredList)
-    // }
     setFiltered(newFilteredList)
   }, [wordListName, guesses])
 
