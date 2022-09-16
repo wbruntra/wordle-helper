@@ -1,16 +1,26 @@
 import _, { every } from 'lodash'
 import {
-  filterWordsUsingGuessResult,
   createEvaluator,
   evaluateToString,
+  filterWordsUsingGuessResult,
   getAllKeys,
   getAnswersMatchingKey,
   getBins,
+  getNextGuess,
+  getPercentageIdentified,
   getPossibleKeys,
+  getUniqueLetters,
+  getUnusedLetters,
+  getYellowLettersInGuesses,
+  guessesIdentifyAnswer,
+  isGuessableInOne,
+  orderWordsByNewLetters,
 } from './utils'
 
 import db from '../db_connection'
+import longWordList from '../results/dordle-valid.json'
 import { sumRoots } from './scorers'
+import utils from '../node_utils'
 import wordList from '../results/official-answers.json'
 
 const playTest = async (starting_word) => {
@@ -42,18 +52,91 @@ const playTest = async (starting_word) => {
   console.log(_.last(guesses), answer)
 }
 
-const run = () => {
-  const word = 'CHIME'
-  const bins = getBins(word, wordList, true)
-  const sortBins = _.chain(bins)
-    .map((value, key) => {
-      return [key, value]
-    })
-    .sortBy((item) => item[1])
-    .reverse()
-    .value()
+const getSomeStartingGuesses = (numGuesses = 4) => {
+  let mostUniqueLetters = 0
+  let bestList = []
+  let i
 
-  console.log(sortBins)
+  for (const startingWord of _.shuffle(wordList).slice(0, 300)) {
+    let guessList = [startingWord]
+    let ordered
+    let uniqueLetters
+    let topUniqueLetters
+
+    while (guessList.length < numGuesses) {
+      ordered = orderWordsByNewLetters(wordList, guessList)
+      topUniqueLetters = ordered[0].count
+      ordered = ordered.filter(({ count }) => count === topUniqueLetters)
+      guessList = [...guessList, _.sample(ordered).word]
+    }
+
+    uniqueLetters = getUniqueLetters(guessList).length
+
+    if (uniqueLetters > mostUniqueLetters) {
+      mostUniqueLetters = uniqueLetters
+      bestList = [...guessList]
+    }
+  }
+  console.log(bestList)
+  return bestList
+}
+
+const getStartingGuessesWithHighCoverage = () => {
+  let guessArrays = Array(7)
+    .fill(0)
+    .map(() => {
+      return getSomeStartingGuesses(3)
+    })
+
+  for (const guesses of guessArrays) {
+    const result = getPercentageIdentified(guesses, wordList)
+    console.log(guesses, result)
+  }
+
+  // console.log(guessArrays)
+}
+
+const run = () => {
+  let guesses = []
+  // guesses = ['BROKE', 'DUCHY', 'SWAMP', 'FLINT']
+  // guesses = ['CLASH', 'WOMEN', 'FRITZ', 'PUDGY']
+  guesses = ['STAND', 'PLUME', 'BIRCH']
+  // const answer = 'LARVA'
+  // const result = guessesIdentifyAnswer(guesses, answer, longWordList)
+
+  const unsolved = wordList
+    .map((answer) => {
+      if (!utils.guessesIdentifyAnswer(guesses, answer, wordList)) {
+        return answer
+      }
+      return false
+    })
+    .filter((a) => a)
+  console.log(unsolved.slice(0, 25), unsolved.length)
+
+  // const result = getPercentageIdentified(guesses, wordList)
+
+  const ordered = utils.orderWordsByNewLetters(wordList, guesses)
+  console.log(ordered.slice(0,10))
+
+  let bestNextGuess
+  let bestNextPct = 0
+
+  for (const nextGuess of _.shuffle(wordList).slice(0, 100)) {
+    const potentialResult = utils.getPercentageIdentified([...guesses, nextGuess], unsolved)
+    // console.log([...guesses, nextGuess], potentialResult)
+    if (potentialResult.percentage > bestNextPct) {
+      bestNextGuess = nextGuess
+      bestNextPct = potentialResult.percentage
+    }
+  }
+
+  console.log('new list', [...guesses, bestNextGuess])
+
+  console.log(utils.getPercentageIdentified([...guesses, bestNextGuess], wordList))
+
+  // const result = getPercentageIdentified(guesses, wordList)
+  // console.log(result)
 }
 
 const testNewBins = async () => {
@@ -74,6 +157,10 @@ const testNewBins = async () => {
   }
 }
 
-run()
-playTest('ROLES')
-testNewBins().then(() => process.exit(0))
+if (require.main === module) {
+  // getSomeStartingGuesses()
+  // getStartingGuessesWithHighCoverage()
+  run()
+  // playTest('ROLES')
+  // testNewBins().then(() => process.exit(0))
+}

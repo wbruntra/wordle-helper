@@ -433,14 +433,14 @@ const getCachedAnswer = async (wordlist_hash, method, db) => {
 
 export const reclassifyAllForAnswer = (answer, wordList, { stop_after_one = false }) => {
   let results = []
-  for (const word of wordList) {
-    if (word === answer) {
+  for (const guess of wordList) {
+    if (guess === answer) {
       continue
     }
-    const key = evaluateToString(word, answer)
+    const key = evaluateToString(guess, answer)
     const filtered = filterWordsUsingGuessResult(
       {
-        word,
+        word: guess,
         key,
       },
       wordList,
@@ -448,14 +448,14 @@ export const reclassifyAllForAnswer = (answer, wordList, { stop_after_one = fals
     if (stop_after_one && filtered.length === 1) {
       return [
         {
-          word,
+          word: guess,
           filtered,
           key,
         },
       ]
     }
     results.push({
-      word,
+      word: guess,
       filtered,
       key,
     })
@@ -473,10 +473,22 @@ export const isGuessableInOne = (answer, wordList) => {
   return result.length > 0
 }
 
+/*
+  * Returns a list of words that are guesses for the given word.
+  * @param {string[]} wordList
+  * @param {Object[]} guesses
+  * @param {string} guesses.word - the guessed word
+  * @param {string} guesses.key - the key for the guess
+*/
 export const applyGuesses = (wordList, guesses) => {
   let filteredWords = wordList.slice()
   for (const guess of guesses) {
     filteredWords = filterWordsUsingGuessResult(guess, filteredWords)
+
+    // If we have narrowed the list to one word, we can return early
+    if (filteredWords.length === 1) {
+      return filteredWords
+    }
   }
 
   return filteredWords
@@ -497,5 +509,153 @@ export function decompress(text) {
     }
     j++
   }
-  return words.map(w => w.toUpperCase())
+  return words.map((w) => w.toUpperCase())
+}
+
+/**
+ * @param {string[]} guessList - List of guessed words
+ */
+
+export function getUnusedLetters(guessList) {
+  const letters = 'abcdefghijklmnopqrstuvwxyz'.toUpperCase()
+  const usedLetters = guessList.reduce((acc, guess) => {
+    return acc + guess
+  }, '')
+  return letters.split('').filter((letter) => !usedLetters.includes(letter))
+}
+
+export const getUnusedLetterCountInWord = (word, unusedLetters) => {
+  return word
+    .split('')
+    .map((letter) => unusedLetters.includes(letter))
+    .filter((r) => r).length
+}
+
+/**
+ * With a list of guesses, return an array of letters which are used in the word but with unknown positions
+ * @param {Object[]} guesses
+ * @param {string} guesses[].word
+ * @param {string} guesses[].key
+ */
+
+export function getYellowLettersInGuesses(guesses) {
+  const exampleGuesses = [
+    {
+      word: 'HELLO',
+      key: 'GY-Y-',
+    },
+  ]
+
+  let yellowLetters = exampleGuesses.reduce((acc, guess) => {
+    console.log(acc)
+    return [
+      ...acc,
+      ...guess.word
+        .split('')
+        .map((letter, index) => {
+          if (guess.key[index] === 'Y') {
+            return letter
+          }
+        })
+        .filter((r) => r),
+    ]
+  }, [])
+
+  console.log(yellowLetters)
+
+  // return guesses.reduce((acc, guess) => {
+  //   return acc + guess.key.split('').filter((letter) => letter === 'Y').length
+  // }, 0)
+}
+
+export function getNextGuess(guessList, wordList) {
+  const unusedLetters = getUnusedLetters(guessList)
+  const unusedWords = wordList.filter((word) => !guessList.includes(word))
+  const unusedLettersInWords = unusedWords.map((word) =>
+    getUnusedLetterCountInWord(word, unusedLetters),
+  )
+  console.log(unusedLettersInWords)
+
+  // console.log(_.shuffle(unusedWordsWithLetters.slice(0, 25)))
+  // return unusedWordsWithLetters[0]
+}
+
+/**
+ * @param {string[]} guessList - List of guessed words
+ */
+export const getUniqueLetters = (guessList) => {
+  return _.uniq(guessList.join('').split('')).join('')
+}
+
+/**
+ * @param {string[]} guessList - List of guessed words
+ */
+export const countUniqueLetters = (guessList) => {
+  return getUniqueLetters().length
+}
+
+/**
+ * @param {string[]} guessList - List of guessed words
+ * @param {string} word
+ */
+
+export const getNewLetterCountInWord = (usedLetters, word) => {
+  const usedLettersArray = usedLetters.split('')
+  const result = word.split('').filter((letter) => {
+    const result = !usedLettersArray.includes(letter)
+    if (result) {
+      usedLettersArray.push(letter)
+    }
+    return result
+  })
+  return result.length
+}
+
+export const orderWordsByNewLetters = (wordList, guessList) => {
+  const usedLetters = getUniqueLetters(guessList)
+
+  return _.orderBy(
+    wordList.map((word) => {
+      return {
+        word,
+        count: getNewLetterCountInWord(usedLetters, word),
+      }
+    }),
+    (a) => a.count,
+    'desc',
+  )
+}
+
+/**
+ * @param {string[]} guesses - List of guessed words
+ * @param {string} answer
+ */
+
+export const guessesIdentifyAnswer = (guesses, answer, wordList) => {
+  const guessList = guesses.map((guess) => {
+    return {
+      word: guess.toUpperCase(),
+      key: evaluateToString(guess, answer),
+    }
+  })
+
+  const remaining = applyGuesses(wordList, guessList)
+
+  return remaining.length === 1
+}
+
+export const getPercentageIdentified = (guesses, wordList) => {
+  let identified = 0
+
+  for (const answer of wordList) {
+    if (guessesIdentifyAnswer(guesses, answer, wordList)) {
+      identified++
+    }
+  }
+
+  return {
+    identified,
+    total: wordList.length,
+    percentage: (identified / wordList.length) * 100,
+  }
 }

@@ -17,7 +17,7 @@ def get_book_unique_words(filename, official_words = None):
     unique_words = set(words)
     unique_words = set([w.upper() for w in words])
     if official_words:
-        print('Limiting words')
+        # print('Limiting words')
         unique_words = set(official_words).intersection(unique_words)
     return unique_words
 
@@ -193,6 +193,23 @@ def get_answer_coverage(wordlist):
     a = f'Wordlist has {len(wordlist)} words, {100 - (100 * d/len(official)):.2f}% coverage'
     print(a)
 
+def get_used_words():
+    official_words = get_all_official_words()
+    # print(official_words[0:10])
+    
+    filenames = glob.glob("./books/*.txt")
+
+    words = set()
+
+    for book in filenames:
+        new_words = get_book_unique_words(book, official_words)
+        words.update(new_words)
+    
+    words = sorted(words)
+    
+    with open('./results/used_words.json', 'w') as f:
+        f.write(json.dumps(words, indent=2, ensure_ascii=False))
+
 
 # run()
 # save_official()
@@ -208,6 +225,10 @@ if __name__ == "__main__":
     # use_counter()
     # common_wordlist = make_wordlist_with_common(5)
     # get_answer_coverage(common_wordlist)
-    get_common_words()
+    # get_common_words()
+    # get_used_words()
+    with open('./results/used_words.json') as f:
+        used_words = json.load(f)
+    get_answer_coverage(used_words)
 
 # print(modified_words)

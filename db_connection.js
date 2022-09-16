@@ -1,6 +1,6 @@
-import dbConfig from './knexfile'
-import knex from 'knex'
+const dbConfig = require('./knexfile')
+const knex = require('knex')
 
 const db = knex(dbConfig.development)
 
-export default db
+module.exports = db

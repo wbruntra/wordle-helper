@@ -21,6 +21,7 @@ const commonPlusOfficial = require('./results/common-plus-official.json')
 const nytAnswers = require('./results/nyt-words.json')
 const nytValid = require('./results/nyt-valid-words.json')
 const dordleValid = require('./results/dordle-valid.json')
+const quordleValid = require('./results/quordle.json')
 // const s = compress(commonPlusOfficial)
 
 let fullNyt = [...nytAnswers, ...nytValid].map((w) => w.toUpperCase()).sort()
@@ -31,6 +32,7 @@ const wordLists = {
   commonPlusOfficial: compress(commonPlusOfficial),
   nyt: compress(fullNyt),
   dordle: compress(dordleValid),
+  quordle: compress(quordleValid),
 }
 
 fs.writeFileSync('./compressed/wordLists.js', JSON.stringify(wordLists, null, 2))
