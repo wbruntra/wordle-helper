@@ -10,7 +10,7 @@ import examples from './examples.json'
 // import officialList from './data/official-answers-alphabetical.json'
 // import starterList from './data/words-common-7.json'
 // import startingList from './data/common-plus-official.json'
-import { nyt as startingList } from './wordlists'
+import { nytAll as startingList } from './wordlists'
 
 function Dordle() {
   const [touched, setTouched] = useState(false)

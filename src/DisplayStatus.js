@@ -142,9 +142,7 @@ function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, remove
   const [orderedWords, setOrderedWords] = useState([])
 
   useEffect(() => {
-    let localFiltered
-
-    localFiltered = applyGuesses(startingList, guesses)
+    let localFiltered = applyGuesses(startingList, guesses)
     setFiltered(localFiltered)
 
     if (localFiltered.length === 0) {
@@ -166,7 +164,7 @@ function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, remove
       })
     }
     setOrderedWords(newWordOrder)
-  }, [guesses, usingOnlyFiltered])
+  }, [guesses, usingOnlyFiltered, startingList])
 
   useEffect(() => {
     if (guesses.length > 0) {
@@ -256,7 +254,7 @@ function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, remove
                   <>
                     <p>
                       Showing best{' '}
-                      {usingOnlyFiltered ? 'among available' : 'overall (including eliminated)'}{' '}
+                      {usingOnlyFiltered ? 'among filtered' : 'overall (including eliminated)'}{' '}
                       choices
                     </p>
                     <div className="mb-2">

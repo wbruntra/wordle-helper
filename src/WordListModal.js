@@ -1,27 +1,39 @@
 import Button from 'react-bootstrap/Button'
 import Modal from 'react-bootstrap/Modal'
 
-function WordListModal() {
-  const radios = [
-    { name: 'Full', value: '1' },
-    { name: 'Answers Only', value: '2' },
+function WordListModal({ show, handleClose, wordList, setWordList }) {
+  const options = [
+    { value: 'nytSolutions', label: 'Only Solutions' },
+    { value: 'commonPlusOfficial', label: 'Solutions + Common Words' },
+    { value: 'nytAll', label: 'All Valid Words' },
   ]
 
   return (
-    <Modal.Dialog>
+    <Modal show={show} onHide={handleClose}>
       <Modal.Header closeButton>
         <Modal.Title>Choose Wordlist</Modal.Title>
       </Modal.Header>
 
       <Modal.Body>
-        <p>Modal body text goes here.</p>
+        <p>Select a Wordlist to use</p>
+
+        <select
+          value={wordList}
+          onChange={(e) => {
+            console.log(e.target.value)
+            setWordList(e.target.value)
+          }}
+        >
+          {options.map((option) => (
+            <option value={option.value}>{option.label}</option>
+          ))}
+        </select>
       </Modal.Body>
 
       <Modal.Footer>
-        <Button variant="secondary">Close</Button>
-        <Button variant="primary">Save changes</Button>
+        <Button onClick={handleClose} variant="secondary">Close</Button>
       </Modal.Footer>
-    </Modal.Dialog>
+    </Modal>
   )
 }
 

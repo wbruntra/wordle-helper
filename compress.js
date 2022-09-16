@@ -30,7 +30,8 @@ const fs = require('fs')
 
 const wordLists = {
   commonPlusOfficial: compress(commonPlusOfficial),
-  nyt: compress(fullNyt),
+  nytSolutions: compress(nytAnswers.map((w) => w.toUpperCase())),
+  nytAll: compress(fullNyt),
   dordle: compress(dordleValid),
   quordle: compress(quordleValid),
 }
