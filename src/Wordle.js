@@ -103,8 +103,10 @@ function App() {
     document.activeElement.blur()
   }
 
-  const endPreview = () => {
-    setBins([])
+  const removeGuess = (index) => {
+    const newGuesses = [...guesses]
+    newGuesses.splice(index, 1)
+    setGuesses(newGuesses)
   }
 
   return (
@@ -205,6 +207,7 @@ function App() {
           setGuesses={setGuesses}
           resetGuesses={resetGuesses}
           startingList={currentFilteredList}
+          removeGuess={removeGuess}
         />
       </div>
       <WordListModal
