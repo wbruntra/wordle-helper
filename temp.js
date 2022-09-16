@@ -94,19 +94,25 @@ const run = () => {
     HEART: 15,
   }
 
-  const quordle = require('./raw/quordle.js')
+  const nytValid = require('./results/nyt-valid-words.json')
+  const nytAnswers = require('./results/official-answers.json')
+  const allValid = [...nytValid, ...nytAnswers].map((w) => w.toUpperCase()).sort()
 
-  console.log(Object.keys(quordle))
-  const quordleValid = quordle.allowed.split(' ')
-  console.log(quordleValid.length, quordleValid.slice(0, 5))
-  fs.writeFileSync('./results/quordle-valid.json', JSON.stringify(quordleValid, null, 2))
+  fs.writeFileSync('./results/nyt-valid-words-caps.json', JSON.stringify(allValid, null, 2))
 
-  const quordleSolutions = quordle.wordBank.split(' ')
-  console.log(quordleSolutions.length, quordleSolutions.slice(0, 5))
-  fs.writeFileSync('./results/quordle-solutions.json', JSON.stringify(quordleSolutions, null, 2))
+  // const quordle = require('./raw/quordle.js')
 
-  const allQuordle = [...quordleValid, ...quordleSolutions].sort()
-  fs.writeFileSync('./results/quordle.json', JSON.stringify(allQuordle, null, 2))
+  // console.log(Object.keys(quordle))
+  // const quordleValid = quordle.allowed.split(' ')
+  // console.log(quordleValid.length, quordleValid.slice(0, 5))
+  // fs.writeFileSync('./results/quordle-valid.json', JSON.stringify(quordleValid, null, 2))
+
+  // const quordleSolutions = quordle.wordBank.split(' ')
+  // console.log(quordleSolutions.length, quordleSolutions.slice(0, 5))
+  // fs.writeFileSync('./results/quordle-solutions.json', JSON.stringify(quordleSolutions, null, 2))
+
+  // const allQuordle = [...quordleValid, ...quordleSolutions].sort()
+  // fs.writeFileSync('./results/quordle.json', JSON.stringify(allQuordle, null, 2))
 
   // const dordleValid = require('./results/dordle-valid.json')
   // console.log(dordleValid.length, dordleValid.slice(0, 5))

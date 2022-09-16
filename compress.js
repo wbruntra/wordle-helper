@@ -32,8 +32,8 @@ const wordLists = {
   commonPlusOfficial: compress(commonPlusOfficial),
   nytSolutions: compress(nytAnswers.map((w) => w.toUpperCase())),
   nytAll: compress(fullNyt),
-  dordle: compress(dordleValid),
-  quordle: compress(quordleValid),
+  // dordle: compress(dordleValid),
+  // quordle: compress(quordleValid),
 }
 
 fs.writeFileSync('./compressed/wordLists.js', JSON.stringify(wordLists, null, 2))

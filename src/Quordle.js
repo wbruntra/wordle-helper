@@ -14,10 +14,7 @@ import Guess from './Guess'
 import ReactTooltip from 'react-tooltip'
 import examples from './examples.json'
 import produce from 'immer'
-// import officialList from './data/official-answers-alphabetical.json'
-// import starterList from './data/words-common-7.json'
-// import startingList from './data/common-plus-official.json'
-import { quordle as quordleList } from './wordlists/index'
+import { nytAll as starterList } from './wordlists/index'
 
 const range = (upper) => {
   return Array.from({ length: upper }, (_, i) => i)
@@ -73,7 +70,7 @@ function Quordle() {
       })
       .filter((i) => i)
 
-    const filteredList = applyGuesses(quordleList, combined)
+    const filteredList = applyGuesses(starterList, combined)
     const wordNeedingKey = getWordNeedingKey(guesses, evaluations)
 
     const targetWord = activeWord || wordNeedingKey
