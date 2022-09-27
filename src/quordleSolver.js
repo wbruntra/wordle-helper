@@ -1,14 +1,19 @@
-const utils = require('./node_utils')
-const wordList = require('./results/official-answers.json')
-const validWords = require('./results/dordle-valid.json')
-const _ = require('lodash')
-const { applyGuesses } = require('./node_utils')
+// const utils = require('./node_utils')
+// const wordList = require('./results/official-answers.json')
+// const validWords = require('./results/dordle-valid.json')
+// const _ = require('lodash')
+// const { applyGuesses } = require('./node_utils')
+
+import { applyGuesses, evaluateToString, solutionGuaranteed } from './utils'
+import { nytAll as validWords, nytSolutions as wordList } from './wordlists/index'
+
+import _ from 'lodash'
 
 const getKeys = (guesses, answer) => {
   return guesses.map((guess) => {
     return {
       word: guess,
-      key: utils.evaluateToString(guess, answer),
+      key: evaluateToString(guess, answer),
     }
   })
 }
@@ -17,10 +22,10 @@ const getRemainingWords = (answer, guessList, wordList) => {
   const guesses = guessList.map((guess) => {
     return {
       word: guess,
-      key: utils.evaluateToString(guess, answer),
+      key: evaluateToString(guess, answer),
     }
   })
-  return utils.applyGuesses(wordList, guesses)
+  return applyGuesses(wordList, guesses)
 }
 
 const getAllRemainingWords = (answers, guessList, validWords) => {
@@ -40,7 +45,7 @@ const newGuessIdentifiesSolution = (guess, oldGuesses, remainingWords) => {
   Determine whether `guess` will identify the solution among `remainingWords`
 */
 const guessIdentifiesSolution = (guess, remainingWords) => {
-  return utils.solutionGuaranteed(guess, remainingWords)
+  return solutionGuaranteed(guess, remainingWords)
 }
 
 /**
@@ -153,7 +158,7 @@ const getNextGuess = (remainingWords, { useAllWords = true } = {}) => {
 }
 
 const play = ({
-  startingGuesses = ['DUCHY', 'FLINT', 'SWAMP', 'BROKE'],
+  startingGuesses = ['DUCHY', 'FLING', 'STAMP', 'BROKE'],
   answers = null,
   verbose = false,
   startingWords = 3,
@@ -178,7 +183,6 @@ const play = ({
   while (answers.length > 0 && guessList.length < maxGuesses) {
     for (const guess of guessList) {
       if (answers.includes(guess)) {
-        // console.log('Found answer:', guess)
         answers = _.without(answers, guess)
       }
     }
@@ -231,15 +235,16 @@ const run = () => {
   console.log(`${success} / ${total}`)
 }
 
-let testAnswers
+// let testAnswers
 // testAnswers = ['MELON', 'VAUNT', 'CLACK', 'WRIST']
 // testAnswers = ['TODAY', 'DWELL', 'WRING', 'TACIT']
-testAnswers = ['DEVIL', 'MURAL', 'SNEAK', 'LEGGY']
-testAnswers = ['PAPER', 'LOWLY', 'CHAFF', 'SWORE']
+// testAnswers = ['DEVIL', 'MURAL', 'SNEAK', 'LEGGY']
+// testAnswers = ['PAPER', 'LOWLY', 'CHAFF', 'SWORE']
 // testAnswers = ['AMISS', 'WORRY']
 
 // testAnswers = ['SHOWY', 'FAUNA', 'FIERY', 'FUZZY', 'THUMP', 'DROLL', 'TAPER', 'BIBLE']
 
-const r = play({ answers: testAnswers, verbose: true, maxGuesses: 13 })
-console.log(r)
+// const r = play({ answers: testAnswers, verbose: true, maxGuesses: 13 })
+
+export default play
 // run()

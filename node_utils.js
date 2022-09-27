@@ -625,7 +625,7 @@ const orderEntireWordList = (
     return {
       word,
       score: maximizeUniqueness(bins),
-      weightedScore: weightKeys(fullBins) / (filteredList.length * 15),
+      // weightedScore: weightKeys(fullBins) / (filteredList.length * 15),
     }
   })
 
@@ -637,7 +637,7 @@ const orderEntireWordList = (
       return {
         word,
         score: maximizeUniqueness(bins),
-        weightedScore: weightKeys(fullBins) / (filteredList.length * 15),
+        // weightedScore: weightKeys(fullBins) / (filteredList.length * 1f5),
       }
     })
   }

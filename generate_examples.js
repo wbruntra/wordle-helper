@@ -1,6 +1,6 @@
 import _, { each, every } from 'lodash'
-import { evaluateToString, getAllKeys } from './src/utils'
 
+import { evaluateToString } from './src/utils'
 import fs from 'fs'
 import wordList from './results/words-common-15.json'
 

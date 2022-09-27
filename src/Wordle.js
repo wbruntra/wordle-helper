@@ -1,28 +1,15 @@
-import {
-  applyGuesses,
-  filterWordsUsingGuessResult,
-  getBins,
-  getCanonical,
-  getCanonicalKey,
-} from './utils'
-// import officialList from './data/official-answers-alphabetical.json'
-// import starterList from './data/words-common-7.json'
-// import startingList from './data/common-plus-official.json'
-// import startingList from './data/valid-words.json'
 import { commonPlusOfficial, nytAll, nytSolutions } from './wordlists/index'
+import { getBins, getCanonical, getCanonicalKey } from './utils';
 import { useEffect, useRef, useState } from 'react'
-import { weightKeys, wordsAtOrBelowLimit } from './scorers'
 
-import { BsFillGearFill } from 'react-icons/bs'
 import DisplayStatus from './DisplayStatus'
 import { FiSettings } from 'react-icons/fi'
 import Guess from './Guess'
-import ReactTooltip from 'react-tooltip'
 import WordListModal from './WordListModal'
 import _ from 'lodash'
+import { evaluateToString } from './utils'
 import examples from './examples.json'
-
-const startingList = commonPlusOfficial
+import { weightKeys } from './scorers';
 
 const wordLists = {
   nytSolutions,
@@ -30,33 +17,22 @@ const wordLists = {
   nytAll,
 }
 
-const getWeightedScores = (filteredList) => {
-  const results = filteredList.map((word) => {
-    const bins = getBins(word, filteredList, { returnObject: true })
-    return {
-      word,
-      score: weightKeys(bins),
-    }
-  })
-
-  return _.orderBy(results, (o) => o.score, 'desc')
-}
-
-function App() {
+function Wordle() {
   const [touched, setTouched] = useState(false)
   const [guesses, setGuesses] = useState([])
   const [word, setWord] = useState('')
   const [key, setKey] = useState('')
-  const [wordListName, setWordListName] = useState('commonPlusOfficial')
+  const [wordListName, setWordListName] = useState('nytAll')
   const [currentFilteredList, setFiltered] = useState(wordLists[wordListName].slice())
   const inputEl = useRef(null)
   const [bins, setBins] = useState([])
   const [example, setExample] = useState(_.sample(examples))
-  const [showExample, setShowExample] = useState(false)
+  const [showExample, setShowExample] = useState(true)
   const [error, setError] = useState('')
   const [countOnly, setCountOnly] = useState(true)
   const [showGuessInput, setShowGuessInput] = useState(true)
   const [showWordListModal, setShowWordListModal] = useState(false)
+  const [answerInput, setAnswerInput] = useState('')
 
   const params = new URLSearchParams(window.location.search)
 
@@ -96,6 +72,8 @@ function App() {
     setTouched(true)
 
     document.activeElement.blur()
+
+    inputEl.current.focus()
   }
 
   const removeGuess = (index) => {
@@ -109,7 +87,7 @@ function App() {
       <div className="container mt-3">
         <div className="d-flex justify-content-end">
           <div>
-            <span className='selectable' onClick={() => setShowWordListModal(true)}>
+            <span className="selectable" onClick={() => setShowWordListModal(true)}>
               <FiSettings size={'2em'} />
             </span>
           </div>
@@ -132,7 +110,7 @@ function App() {
               </span>{' '}
               {example.key}
               <br />
-              (click to demonstrate)
+              {/* (click to demonstrate) */}
             </p>
             <div className="mb-4">
               {word.length < 5 && (
@@ -169,7 +147,13 @@ function App() {
                 className="font-mono form-control"
                 ref={inputEl}
                 value={word}
-                onChange={(e) => setWord(e.target.value.toUpperCase())}
+                onChange={(e) => {
+                  setWord(e.target.value.toUpperCase())
+                  if (e.target.value.toUpperCase().length === 5 && answerInput.length === 5) {
+                    const newKey = evaluateToString(e.target.value.toUpperCase(), answerInput)
+                    setKey(newKey)
+                  }
+                }}
                 placeholder={showExample ? example.word : 'GUESS'}
               />
             </fieldset>
@@ -212,9 +196,11 @@ function App() {
         handleClose={() => {
           setShowWordListModal(false)
         }}
+        answerInput={answerInput}
+        setAnswerInput={setAnswerInput}
       />
     </>
   )
 }
 
-export default App
+export default Wordle

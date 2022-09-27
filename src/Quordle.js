@@ -1,10 +1,12 @@
 import _, { add } from 'lodash'
 import {
   applyGuesses,
+  evaluateToString,
   filterWordsUsingGuessResult,
   getBins,
   getCanonical,
   getCanonicalKey,
+  getGuessesWithKeys,
 } from './utils'
 import { useEffect, useRef, useState } from 'react'
 import { weightKeys, wordsAtOrBelowLimit } from './scorers'
@@ -14,11 +16,8 @@ import Guess from './Guess'
 import ReactTooltip from 'react-tooltip'
 import examples from './examples.json'
 import produce from 'immer'
+import quordleSolver from './quordleSolver'
 import { nytAll as starterList } from './wordlists/index'
-
-const range = (upper) => {
-  return Array.from({ length: upper }, (_, i) => i)
-}
 
 function Quordle() {
   const gameOptions = {
@@ -33,6 +32,52 @@ function Quordle() {
   const [guesses, setGuesses] = useState([])
   const [guess, setGuess] = useState('')
   const [evaluations, setEvaluations] = useState(Array(4).fill({}))
+
+  const [answerInput, setAnswerInput] = useState('')
+  const [answers, setAnswers] = useState([])
+
+  const handleAnswers = () => {
+    const newAnswers = answerInput
+      .toUpperCase()
+      .split(',')
+      .map((a) => a.trim())
+
+    setAnswers(newAnswers)
+  }
+
+  useEffect(() => {
+    if (_.isEmpty(answers)) {
+      return
+    }
+    if (answers.every((answer) => answer.length === 5)) {
+      setGameType({
+        label: 'Solved',
+        value: 'solved',
+        length: answers.length,
+      })
+      const result = quordleSolver({
+        answers,
+        verbose: true,
+      })
+
+      console.log(result)
+      const guesses = result.guessList
+      setGuesses(guesses)
+
+      const newEvaluations = answers.map((answer) => {
+        const guessesPlusKeys = getGuessesWithKeys(guesses, answer)
+        console.log('guessesPlusKeys', guessesPlusKeys)
+        const result = guessesPlusKeys.reduce((acc, item) => {
+          acc[item.word] = item.key
+          return acc
+        }, {})
+        return result
+      })
+      console.log('new evaluations')
+      console.log(newEvaluations)
+      setEvaluations(newEvaluations)
+    }
+  }, [answers])
 
   const addGuess = (e) => {
     e.preventDefault()
@@ -54,7 +99,7 @@ function Quordle() {
     }
   }
 
-  const RenderEvaluations = ({ guesses, evaluations, setEvaluations }) => {
+  const RenderEvaluations = ({ guesses, evaluations, setEvaluations, answer }) => {
     const [showWords, setShowWords] = useState(false)
     const [keyInput, setKeyInput] = useState('')
     const [activeWord, setActiveWord] = useState(null)
@@ -74,6 +119,7 @@ function Quordle() {
     const wordNeedingKey = getWordNeedingKey(guesses, evaluations)
 
     const targetWord = activeWord || wordNeedingKey
+    const targetLetter = _.get(targetWord, keyInput.length)
 
     return (
       <div className="col-6">
@@ -89,23 +135,27 @@ function Quordle() {
             }
             return (
               <div key={`guess-${j}`} className="text-center mb-1">
-                <span
-                  className="selectable"
-                  onClick={() => {
-                    setActiveWord(guess)
-                  }}
-                >
-                  <Guess guess={combinedGuess} />
-                </span>
-                {/* {evaluations[guess] && ( */}
-                <span
-                  className={`delete`}
-                  onClick={() => {
-                    setEvaluations(_.omit(evaluations, guess))
-                  }}
-                >
-                  x
-                </span>
+                <div className="d-flex flex-row justify-content-between">
+                  <div
+                    className="selectable pe-3"
+                    onClick={() => {
+                      setActiveWord(guess)
+                    }}
+                  >
+                    <Guess guess={combinedGuess} />
+                  </div>
+
+                  {/* {evaluations[guess] && ( */}
+                  <div
+                    className={`delete`}
+                    onClick={() => {
+                      setEvaluations(_.omit(evaluations, guess))
+                    }}
+                  >
+                    x
+                  </div>
+                </div>
+
                 {/* )} */}
               </div>
             )
@@ -126,20 +176,48 @@ function Quordle() {
               >
                 <input
                   type="text"
-                  className="font-mono form-control"
+                  className="font-mono form-control d-none d-md-block"
                   value={keyInput}
                   placeholder={`key for ${activeWord || wordNeedingKey}`}
                   onChange={(e) => setKeyInput(e.target.value.toLocaleUpperCase())}
                 />
+                <div className="d-flex justify-content-between d-md-none">
+                  {targetLetter ? (
+                    <>
+                      <div
+                        onClick={() => setKeyInput(keyInput + 'G')}
+                        className="letter-box green px-2 mx-2"
+                      >
+                        {targetLetter}
+                      </div>
+                      <div
+                        onClick={() => setKeyInput(keyInput + 'Y')}
+                        className="letter-box yellow px-2 mx-2"
+                      >
+                        {targetLetter}
+                      </div>
+                      <div
+                        onClick={() => setKeyInput(keyInput + '-')}
+                        className="letter-box white px-2 mx-2"
+                      >
+                        {targetLetter}
+                      </div>
+                    </>
+                  ) : (
+                    <input type="submit" className="btn btn-primary btn-sm" value="Submit" />
+                  )}
+                </div>
               </form>
             )}
           </div>
           <div>
             {!showWords ? (
-              <p onClick={() => setShowWords(true)}>Words left: {filteredList.length}</p>
+              <p className="selectable" onClick={() => setShowWords(true)}>
+                Words left: {filteredList.length}
+              </p>
             ) : (
-              <p onClick={() => setShowWords(false)}>
-                {filteredList.length < 8 && <span>{filteredList.join(', ')}</span>}
+              <p className="selectable" onClick={() => setShowWords(false)}>
+                {filteredList.length < 8 ? <span>{filteredList.join(', ')}</span> : 'Too many'}
               </p>
             )}
           </div>
@@ -150,6 +228,20 @@ function Quordle() {
 
   return (
     <div className="container">
+      <form
+        onSubmit={(e) => {
+          e.preventDefault()
+          handleAnswers()
+        }}
+      >
+        <input
+          className="form-control mb-2"
+          value={answerInput}
+          onChange={(e) => setAnswerInput(e.target.value)}
+        />
+        <input className="btn btn-primary" type="submit" value="Set Answers" />
+      </form>
+
       <h1 className="title text-center">Playing {gameType.label}</h1>
       <div className="row text-center">
         <div className="col">
@@ -163,7 +255,9 @@ function Quordle() {
             }}
           >
             {_.map(gameOptions, (option) => (
-              <option value={option.value}>{option.label}</option>
+              <option key={`option-${option.value}`} value={option.value}>
+                {option.label}
+              </option>
             ))}
           </select>
         </div>
@@ -196,11 +290,20 @@ function Quordle() {
           {Array(gameType.length)
             .fill(1)
             .map((x, i) => {
-              return <RenderEvaluations key={`eval-${i}`} guesses={guesses} evaluations={evaluations[i]} setEvaluations={(newEvaluations) => {
-                const newEvaluationsArray = [...evaluations]
-                newEvaluationsArray[i] = newEvaluations
-                setEvaluations(newEvaluationsArray)
-              }}/>
+              return (
+                <RenderEvaluations
+                  key={`eval-${i}`}
+                  guesses={guesses}
+                  evaluations={evaluations[i]}
+                  setEvaluations={(newEvaluations) => {
+                    const newEvaluationsArray = [...evaluations]
+                    newEvaluationsArray[i] = newEvaluations
+                    console.log(newEvaluationsArray)
+                    setEvaluations(newEvaluationsArray)
+                  }}
+                  answer={answers[i]}
+                />
+              )
             })}
         </div>
       )}

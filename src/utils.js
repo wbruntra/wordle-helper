@@ -1,10 +1,7 @@
 import { miniMax, sumRoots, wordsAtOrBelowLimit } from './scorers'
 
 import _ from 'lodash'
-import masterWords from './words.json'
 import md5 from 'md5'
-import spanishList from './data/valid-word-list-xl.json'
-import starterList from './starterList.json'
 
 export const getCanonical = (s, removeAccents = false) => {
   let canonical = s.slice().trim()
@@ -68,43 +65,43 @@ export const guessReverser = (answer, key, wordList) => {
  * @param {string} guess - The guessed word
  * @param {string} answer - The correct answer
  */
-export const evaluate = (guess, answer) => {
-  let remainingAnswer = getCanonical(answer)
-  const result = []
-  for (let i = 0; i < guess.length; i++) {
-    if (guess[i] === answer[i]) {
-      result[i] = {
-        exact: true,
-        present: true,
-        name: guess[i],
-        code: 'G',
-      }
-      remainingAnswer = remainingAnswer.replace(guess[i], '-')
-    }
-  }
-  for (let i = 0; i < guess.length; i++) {
-    if (result[i]) {
-      continue
-    }
-    if (remainingAnswer.includes(guess[i])) {
-      result[i] = {
-        exact: false,
-        present: true,
-        name: guess[i],
-        code: 'Y',
-      }
-      remainingAnswer = remainingAnswer.replace(guess[i], '-')
-    } else {
-      result[i] = {
-        exact: false,
-        present: false,
-        name: guess[i],
-        code: '-',
-      }
-    }
-  }
-  return result
-}
+// export const evaluate = (guess, answer) => {
+//   let remainingAnswer = getCanonical(answer)
+//   const result = []
+//   for (let i = 0; i < guess.length; i++) {
+//     if (guess[i] === answer[i]) {
+//       result[i] = {
+//         exact: true,
+//         present: true,
+//         name: guess[i],
+//         code: 'G',
+//       }
+//       remainingAnswer = remainingAnswer.replace(guess[i], '-')
+//     }
+//   }
+//   for (let i = 0; i < guess.length; i++) {
+//     if (result[i]) {
+//       continue
+//     }
+//     if (remainingAnswer.includes(guess[i])) {
+//       result[i] = {
+//         exact: false,
+//         present: true,
+//         name: guess[i],
+//         code: 'Y',
+//       }
+//       remainingAnswer = remainingAnswer.replace(guess[i], '-')
+//     } else {
+//       result[i] = {
+//         exact: false,
+//         present: false,
+//         name: guess[i],
+//         code: '-',
+//       }
+//     }
+//   }
+//   return result
+// }
 
 /**
  * Return evaluation key (e.g. `YG..Y`) for given `guess` and `answer`
@@ -180,32 +177,6 @@ export const filterWordsUsingGuessResult = (guess, wordList) => {
     return potentialKey === guess.key
   })
   return result
-}
-
-/**
- * @param {Number} n - Number
- */
-export const numToKey = (n) => {
-  const s = ('00000' + n.toString(3)).slice(-5)
-  return s
-    .split('')
-    .map((i) => {
-      switch (i) {
-        case '0':
-          return '-'
-        case '1':
-          return 'Y'
-        case '2':
-          return 'G'
-      }
-    })
-    .join('')
-}
-
-export const getAllKeys = () => {
-  return Array(243)
-    .fill(1)
-    .map((x, i) => numToKey(i))
 }
 
 /**
@@ -309,6 +280,8 @@ export const getBestChoice = async (
       return {
         word: _.sample(wordList),
       }
+    default:
+      throw new Error(`Unknown scoring method: ${scoring_method}`)
   }
 
   if (db) {
@@ -356,7 +329,6 @@ export const getBestHitFromFullList = (
   const acceptable_unique_proportion = strictness_proportion
 
   const filteredScores = []
-  let proportion
 
   for (const word of filteredList) {
     const normalBins = getBins(word, filteredList)
@@ -405,8 +377,6 @@ export const getBestHitFromFullList = (
   if (verbose) {
     console.log(`Best overall`, best)
   }
-
-  proportion = getProportionOfWordsInBinsBelowLimit(getBins(best.word, filteredList), limit)
 
   verbose && console.log(`End. Returning ${best.word}`)
   return best
@@ -474,12 +444,12 @@ export const isGuessableInOne = (answer, wordList) => {
 }
 
 /*
-  * Returns a list of words that are guesses for the given word.
-  * @param {string[]} wordList
-  * @param {Object[]} guesses
-  * @param {string} guesses.word - the guessed word
-  * @param {string} guesses.key - the key for the guess
-*/
+ * Returns a list of words that are guesses for the given word.
+ * @param {string[]} wordList
+ * @param {Object[]} guesses
+ * @param {string} guesses.word - the guessed word
+ * @param {string} guesses.key - the key for the guess
+ */
 export const applyGuesses = (wordList, guesses) => {
   let filteredWords = wordList.slice()
   for (const guess of guesses) {
@@ -501,7 +471,7 @@ export function decompress(text) {
   let j = 0
   let word
   while (j <= text.length) {
-    if ((text.charCodeAt(j) < 96 || j == text.length) && j > i) {
+    if ((text.charCodeAt(j) < 96 || j === text.length) && j > i) {
       word = (lastword.slice(0, 5 - (j - i)) + text.slice(i, j)).toLowerCase()
       words.push(word)
       lastword = word
@@ -556,6 +526,7 @@ export function getYellowLettersInGuesses(guesses) {
           if (guess.key[index] === 'Y') {
             return letter
           }
+          return null
         })
         .filter((r) => r),
     ]
@@ -658,4 +629,35 @@ export const getPercentageIdentified = (guesses, wordList) => {
     total: wordList.length,
     percentage: (identified / wordList.length) * 100,
   }
+}
+
+/**
+ * Determine if `guess` will identify the solution among `wordList`
+ */
+export const solutionGuaranteed = (guess, wordList) => {
+  const evaluations = []
+  for (const answer of wordList) {
+    const evaluation = evaluateToString(guess, answer)
+    if (evaluations.includes(evaluation)) {
+      return false
+    } else {
+      evaluations.push(evaluation)
+    }
+  }
+  return true
+}
+
+export const getGuessesWithKeys = (guesses, answer) => {
+  const result = []
+  for (const guess of guesses) {
+    const ev = {
+      word: guess,
+      key: evaluateToString(guess, answer),
+    }
+    result.push(ev)
+    // if (ev.key === 'GGGGG') {
+    //   return result
+    // }
+  }
+  return result
 }

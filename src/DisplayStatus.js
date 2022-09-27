@@ -193,8 +193,16 @@ function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, remove
     <div className="d-flex flex-column">
       <div className="d-flex flex-column text-center mb-3">
         {guesses.map((guess, i) => {
+          const currentGuesses = guesses.slice(0, i + 1)
+          const filtered = applyGuesses(startingList, currentGuesses)
           return (
-            <div className="guess selectable-guess mb-3" key={`guess-${i}`}>
+            <div
+              className="guess selectable-guess mb-3 d-flex flex-row justify-content-center"
+              key={`guess-${i}`}
+            >
+              <div style={{ width: '38px', fontSize: '.6em' }} className="remaining-words">
+                {filtered.length}
+              </div>
               <div
                 className="d-inline"
                 onClick={() => {
@@ -203,16 +211,18 @@ function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, remove
               >
                 <Guess guess={guess} />
               </div>
-              <span
-                className="delete"
-                onClick={() => {
-                  setError('')
-                  removeGuess(i)
-                  setGuesses(removeIdx(guesses, i))
-                }}
-              >
-                x
-              </span>
+              <div className='ms-1'>
+                <span
+                  className="delete"
+                  onClick={() => {
+                    setError('')
+                    removeGuess(i)
+                    setGuesses(removeIdx(guesses, i))
+                  }}
+                >
+                  x
+                </span>
+              </div>
             </div>
           )
         })}

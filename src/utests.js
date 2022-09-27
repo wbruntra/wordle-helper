@@ -3,7 +3,6 @@ import {
   createEvaluator,
   evaluateToString,
   filterWordsUsingGuessResult,
-  getAllKeys,
   getAnswersMatchingKey,
   getBins,
   getNextGuess,
