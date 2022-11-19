@@ -1,21 +1,8 @@
-import _, { add } from 'lodash'
-import {
-  applyGuesses,
-  evaluateToString,
-  filterWordsUsingGuessResult,
-  getBins,
-  getCanonical,
-  getCanonicalKey,
-  getGuessesWithKeys,
-} from './utils'
-import { useEffect, useRef, useState } from 'react'
-import { weightKeys, wordsAtOrBelowLimit } from './scorers'
+import { applyGuesses, getCanonicalKey, getGuessesWithKeys } from './utils';
+import { useEffect, useState } from 'react';
 
-import DisplayStatus from './DisplayStatus'
 import Guess from './Guess'
-import ReactTooltip from 'react-tooltip'
-import examples from './examples.json'
-import produce from 'immer'
+import _ from 'lodash';
 import quordleSolver from './quordleSolver'
 import { nytAll as starterList } from './wordlists/index'
 

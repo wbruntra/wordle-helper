@@ -1,16 +1,15 @@
 import './styles/bootstrap.scss'
 import './styles/index.scss'
 
-import { Route, RouterProvider, createBrowserRouter } from 'react-router-dom'
+import { RouterProvider, createBrowserRouter, createHashRouter } from 'react-router-dom';
 
-import Controller from './Controller'
 import Quordle from './Quordle'
 import React from 'react'
 import ReactDOM from 'react-dom'
 import Wordle from './Wordle'
 import reportWebVitals from './reportWebVitals'
 
-const router = createBrowserRouter([
+const router = createHashRouter([
   {
     path: '/',
     element: <Wordle />,
@@ -18,6 +17,10 @@ const router = createBrowserRouter([
   {
     path: '/quordle',
     element: <Quordle />,
+  },
+  {
+    path: '*',
+    element: <Wordle />,
   },
 ])
 

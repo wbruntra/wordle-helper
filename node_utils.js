@@ -605,6 +605,10 @@ const wordsAtOrBelowLimit = (limit) => {
   return binScorer
 }
 
+
+/**
+ * Create a scorer to count the number of words appearing in bins of size no greater than `limit`
+ */
 const orderEntireWordList = (
   filteredList,
   { only_filtered = false, orderByWeight = false, startingList = fullList } = {},

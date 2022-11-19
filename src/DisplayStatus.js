@@ -1,5 +1,5 @@
 import { applyGuesses, filterWordsUsingGuessResult, getBins } from './utils'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { weightKeys, wordsAtOrBelowLimit } from './scorers'
 
 import Guess from './Guess'
@@ -131,7 +131,15 @@ function BinsTable({ bins }) {
   )
 }
 
-function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, removeGuess }) {
+function DisplayStatus({
+  guesses,
+  setGuesses,
+  resetGuesses,
+  startingList,
+  removeGuess,
+  clickedGuess,
+  setClickedGuess,
+}) {
   const [showDepth, setShowDepth] = useState(false)
   const [usingOnlyFiltered, setUsingOnlyFiltered] = useState(true)
   const [countOnly, setCountOnly] = useState(true)
@@ -142,7 +150,19 @@ function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, remove
   const [orderedWords, setOrderedWords] = useState([])
 
   useEffect(() => {
-    let localFiltered = applyGuesses(startingList, guesses)
+    let appliedGuesses = []
+    if (clickedGuess) {
+      for (let i = 0; i < guesses.length; i++) {
+        appliedGuesses.push(guesses[i])
+        if (guesses[i].word === clickedGuess) {
+          break
+        }
+      }
+    } else {
+      appliedGuesses = guesses
+    }
+
+    let localFiltered = applyGuesses(startingList, appliedGuesses)
     setFiltered(localFiltered)
 
     if (localFiltered.length === 0) {
@@ -164,7 +184,7 @@ function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, remove
       })
     }
     setOrderedWords(newWordOrder)
-  }, [guesses, usingOnlyFiltered, startingList])
+  }, [guesses, usingOnlyFiltered, startingList, clickedGuess])
 
   useEffect(() => {
     if (guesses.length > 0) {
@@ -196,34 +216,37 @@ function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, remove
           const currentGuesses = guesses.slice(0, i + 1)
           const filtered = applyGuesses(startingList, currentGuesses)
           return (
-            <div
-              className="guess selectable-guess mb-3 d-flex flex-row justify-content-center"
-              key={`guess-${i}`}
-            >
-              <div style={{ width: '38px', fontSize: '.6em' }} className="remaining-words">
-                {filtered.length}
-              </div>
+            <>
               <div
-                className="d-inline"
-                onClick={() => {
-                  createBinsForGuess(guess.word, guesses)
-                }}
+                className="guess selectable-guess mb-3 d-flex flex-row justify-content-center"
+                key={`guess-${i}`}
               >
-                <Guess guess={guess} />
-              </div>
-              <div className='ms-1'>
-                <span
-                  className="delete"
+                <div style={{ width: '38px', fontSize: '.6em' }} className="remaining-words">
+                  {filtered.length}
+                </div>
+                <div
+                  className="d-inline"
                   onClick={() => {
-                    setError('')
-                    removeGuess(i)
-                    setGuesses(removeIdx(guesses, i))
+                    createBinsForGuess(guess.word, guesses)
+                    setClickedGuess(guess.word)
                   }}
                 >
-                  x
-                </span>
+                  <Guess guess={guess} />
+                </div>
+                <div className="ms-1">
+                  <span
+                    className="delete"
+                    onClick={() => {
+                      setError('')
+                      removeGuess(i)
+                      setGuesses(removeIdx(guesses, i))
+                    }}
+                  >
+                    x
+                  </span>
+                </div>
               </div>
-            </div>
+            </>
           )
         })}
       </div>
@@ -247,7 +270,8 @@ function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, remove
             <p>
               There {currentFilteredList.length === 1 ? 'is ' : 'are'} {currentFilteredList.length}{' '}
               word
-              {currentFilteredList.length === 1 ? '' : 's'} left
+              {currentFilteredList.length === 1 ? '' : 's'} left{' '}
+              {clickedGuess && `after guessing ${clickedGuess}`}
             </p>
 
             <button
@@ -272,8 +296,6 @@ function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, remove
                         <button
                           className="btn btn-primary btn-sm"
                           onClick={() => setUsingOnlyFiltered(false)}
-
-                          // onClick={() => applyFilters({ only_use_filtered: false })}
                         >
                           Use Full Wordlist
                         </button>
@@ -281,7 +303,6 @@ function DisplayStatus({ guesses, setGuesses, resetGuesses, startingList, remove
                         <button
                           className="btn btn-primary btn-sm"
                           onClick={() => setUsingOnlyFiltered(true)}
-                          // onClick={() => applyFilters({ only_use_filtered: true })}
                         >
                           Use Only Valid Words
                         </button>

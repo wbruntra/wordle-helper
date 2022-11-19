@@ -1,5 +1,5 @@
 import { commonPlusOfficial, nytAll, nytSolutions } from './wordlists/index'
-import { getBins, getCanonical, getCanonicalKey } from './utils';
+import { getCanonical, getCanonicalKey } from './utils';
 import { useEffect, useRef, useState } from 'react'
 
 import DisplayStatus from './DisplayStatus'
@@ -9,7 +9,6 @@ import WordListModal from './WordListModal'
 import _ from 'lodash'
 import { evaluateToString } from './utils'
 import examples from './examples.json'
-import { weightKeys } from './scorers';
 
 const wordLists = {
   nytSolutions,
@@ -33,6 +32,7 @@ function Wordle() {
   const [showGuessInput, setShowGuessInput] = useState(true)
   const [showWordListModal, setShowWordListModal] = useState(false)
   const [answerInput, setAnswerInput] = useState('')
+  const [clickedGuess, setClickedGuess] = useState(null)
 
   const params = new URLSearchParams(window.location.search)
 
@@ -65,6 +65,7 @@ function Wordle() {
     // previewGuess(getCanonical(word), newGuesses)
 
     console.log('setting to', newGuesses)
+    setClickedGuess(null)
 
     setGuesses(newGuesses)
     setWord('')
@@ -187,6 +188,8 @@ function Wordle() {
           resetGuesses={resetGuesses}
           startingList={currentFilteredList}
           removeGuess={removeGuess}
+          clickedGuess={clickedGuess}
+          setClickedGuess={setClickedGuess}
         />
       </div>
       <WordListModal

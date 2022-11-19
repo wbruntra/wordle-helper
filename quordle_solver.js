@@ -13,13 +13,66 @@ const getKeys = (guesses, answer) => {
   })
 }
 
-const getRemainingWords = (answer, guessList, wordList) => {
+const combineCounts = (objects) => {
+  const result = {}
+  for (const obj of objects) {
+    for (const [key, value] of Object.entries(obj)) {
+      if (!result[key] || result[key] < value) {
+        result[key] = value
+      }
+    }
+  }
+  return result
+}
+
+const getLetterHitCount = (guess) => {
+  const counts = {}
+  for (let i = 0; i < guess.word.length; i++) {
+    if ('YG'.includes(guess.key[i])) {
+      if (counts[guess.word[i]]) {
+        counts[guess.word[i]]++
+      } else {
+        counts[guess.word[i]] = 1
+      }
+    }
+  }
+  return counts
+}
+
+const getKnownLetters = (guesses) => {
+  const combined = combineCounts(guesses.map((g) => getLetterHitCount(g)))
+  let knownLetters = _.map(combined, (count, letter) => {
+    return letter.repeat(count)
+  }).join('')
+  return knownLetters
+}
+
+const getProcessedGuesses = (answer, guessList) => {
   const guesses = guessList.map((guess) => {
     return {
       word: guess,
       key: utils.evaluateToString(guess, answer),
     }
   })
+  return guesses
+}
+
+const wordHasAllKnownLetters = (word, knownLetters) => {
+  let remains = word.split('')
+  for (const letter of knownLetters) {
+    const index = remains.indexOf(letter)
+    if (index === -1) {
+      return false
+    }
+    remains.splice(index, 1)
+  }
+  return true
+}
+
+const getRemainingWords = (answer, guessList, wordList) => {
+  const guesses = getProcessedGuesses(answer, guessList)
+  const knownLetters = getKnownLetters(guesses)
+  console.log(knownLetters)
   return utils.applyGuesses(wordList, guesses)
 }
 
@@ -152,8 +205,51 @@ const getNextGuess = (remainingWords, { useAllWords = true } = {}) => {
   // Otherwise, return the word that is in the shortest list
 }
 
+const reconstituteWord = (guesses) => {
+  let result = Array(guesses[0].word.length).fill('ABCDEFGHIJKLMNOPQRSTUVWXYZ')
+  const knownLetters = getKnownLetters(guesses)
+  for (const guess of guesses) {
+    const key = guess.key
+    const word = guess.word
+    for (let i = 0; i < key.length; i++) {
+      const char = key[i]
+      if (char === 'G') {
+        result[i] = word[i]
+      } else if (char === 'Y') {
+        result[i] = result[i].replace(word[i], '')
+      } else {
+        result[i] = result[i].replace(word[i], '')
+      }
+    }
+  }
+  return result
+}
+
+const wordleSolve = (answer, { startingGuesses = ['DUCHY', 'FLING', 'STAMP', 'BROKE'] } = {}) => {
+  let guessList = [...startingGuesses.slice(0, 4)]
+
+  while (guessList.length < 5) {
+    const remainingWords = getRemainingWords(answer, guessList, validWords)
+    if (remainingWords.length === 1) {
+      guessList.push(remainingWords[0])
+      return {
+        success: remainingWords[0] === answer,
+        finalRemaining: remainingWords,
+      }
+    }
+    const nextGuess = utils.orderEntireWordList(remainingWords)[0]
+    guessList.push(nextGuess.word)
+  }
+
+  const finalRemaining = getRemainingWords(answer, guessList, validWords)
+  return {
+    success: finalRemaining.length === 1 && finalRemaining[0] === answer,
+    finalRemaining,
+  }
+}
+
 const play = ({
-  startingGuesses = ['DUCHY', 'FLINT', 'SWAMP', 'BROKE'],
+  startingGuesses = ['DUCHY', 'FLING', 'STAMP', 'BROKE'],
   answers = null,
   verbose = false,
   startingWords = 3,
@@ -186,7 +282,6 @@ const play = ({
       break
     }
     remainingWords = getAllRemainingWords(answers, guessList, validWords)
-    // console.log(remainingWords)
     const nextGuess = getNextGuess(remainingWords, {
       useAllWords: guessList.length < maxGuesses - answers.length,
     })
@@ -240,6 +335,45 @@ testAnswers = ['PAPER', 'LOWLY', 'CHAFF', 'SWORE']
 
 // testAnswers = ['SHOWY', 'FAUNA', 'FIERY', 'FUZZY', 'THUMP', 'DROLL', 'TAPER', 'BIBLE']
 
-const r = play({ answers: testAnswers, verbose: true, maxGuesses: 13 })
-console.log(r)
+// const r = play({ answers: testAnswers, verbose: true, maxGuesses: 13 })
+// console.log(r)
 // run()
+
+const testSolutions = _.sampleSize(wordList, 10)
+
+let firstLetter = null
+// for (soln of testSolutions) {
+//   // if (soln[0] !== firstLetter) {
+//   //   firstLetter = soln[0]
+//   //   console.log(soln)
+//   // }
+
+//   console.log(soln)
+//   const r = wordleSolve(soln)
+//   if (!r.success) {
+//     console.log('Failed to solve', soln)
+//   }
+// }
+
+const testGuesses = [
+  {
+    word: 'LEGGY',
+    key: '--GG-',
+  },
+]
+
+const rWord = reconstituteWord(testGuesses)
+const hitCount = getLetterHitCount(testGuesses[0])
+// console.log(rWord)
+// console.log(hitCount)
+
+const o = { G: 2 }
+const g = { B: 1, K: 1, E: 1 }
+const y = { K: 3, E: 0 }
+
+const combined = combineCounts([o, g, y])
+
+// console.log(combined)
+
+const t = wordHasAllKnownLetters('MONEY', 'NOMEY')
+console.log(t)
